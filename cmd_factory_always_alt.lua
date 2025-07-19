@@ -22,6 +22,8 @@ local manualExclusions = {
   cortitan = true,
   corpt = true,
   cormship = true,
+  legfort = true,
+  legamph = true,
 }
 local blackListedForRepeat = {}
 
