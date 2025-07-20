@@ -24,10 +24,12 @@ function widget:Initialize()
 end
 
 local ctrlHeldOnPress = false
+local altHeldOnPress = false
 
 function widget:MousePress(x, y, button)
     local alt, ctrl, meta, shift = Spring.GetModKeyState()
     ctrlHeldOnPress = ctrl
+    altHeldOnPress = alt
     return false -- Don't eat the event
 end
 
@@ -38,6 +40,12 @@ function widget:UnitCommand(unitID, unitDefID, teamID, cmdID, cmdParams, cmdOpti
     -- end
 
     local ctrlHeld = ctrlHeldOnPress
+    local altHeld = altHeldOnPress
+
+    if not ctrlHeld and not altHeld then
+        -- If ctrl or alt is not held, do not process this command
+        return false
+    end
 
     if not constructorDefs[unitDefID] then
         return
