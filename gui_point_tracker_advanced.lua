@@ -85,6 +85,7 @@ layout (location = 1) in vec4 worldposradius;
 layout (location = 2) in vec4 colorlife;
 
 uniform float isMiniMap;
+uniform float minimapRotation; // 0, 1, 2, 3 for 0°, 90°, 180°, 270°
 
 // Animation uniforms
 uniform float ANIM_BASESIZE;
@@ -93,7 +94,6 @@ uniform float ANIM_MAX;
 uniform float ANIM_PHASE1_FRAC;
 uniform float ANIM_ROT_SPEED;
 uniform float NUM_BOXES;
-uniform float minimapAspect;
 
 out DataVS {
   vec4 blendedcolor;
@@ -107,23 +107,32 @@ void main()
 {
   // Convert from world space to screenspace
   vec4 worldPosInCamSpace;
+  float viewratio = 1.0;
+  
   if (isMiniMap > 0.5) {
-    worldPosInCamSpace = mmDrawViewProj * vec4(worldposradius.xyz, 1.0);
+    // Use the same rotation handling as the original point tracker
+    if (minimapRotation == 0) {
+      worldPosInCamSpace = mmDrawViewProj * vec4(worldposradius.xyz, 1.0);
+      viewratio = mapSize.x / mapSize.y;
+    } else if (minimapRotation == 1) {
+      worldPosInCamSpace = mmDrawViewProj * vec4(worldposradius.z * (mapSize.x/mapSize.y), worldposradius.y, mapSize.y - worldposradius.x * (mapSize.y/mapSize.x), 1.0);
+      viewratio = mapSize.y / mapSize.x;
+    } else if (minimapRotation == 2) {
+      worldPosInCamSpace = mmDrawViewProj * vec4(mapSize.x - worldposradius.x, worldposradius.y, mapSize.y - worldposradius.z, 1.0);
+      viewratio = mapSize.x / mapSize.y;
+    } else if (minimapRotation == 3) {
+      worldPosInCamSpace = mmDrawViewProj * vec4(mapSize.x - worldposradius.z * (mapSize.x / mapSize.y), worldposradius.y, worldposradius.x * (mapSize.y / mapSize.x), 1.0);
+      viewratio = mapSize.y / mapSize.x;
+    }
   } else {
     worldPosInCamSpace = cameraViewProj * vec4(worldposradius.xyz, 1.0);
+    viewratio = timeInfo.z / timeInfo.y; // main viewport aspect ratio
   }
+  
   // Project to NDC
   vec3 ndc = worldPosInCamSpace.xyz / worldPosInCamSpace.w;
   ndc.xy = clamp(ndc.xy, -0.98, 0.98); // keep slightly inside screen bounds
   vec2 screenpos = ndc.xy;
-
-  // Calculate aspect ratio for stretching
-  float aspect;
-  if (isMiniMap > 0.5) {
-    aspect = minimapAspect; // minimap aspect ratio, set as uniform from Lua
-  } else {
-    aspect = timeInfo.z / timeInfo.y; // main viewport aspect ratio
-  }
 
   // Animation timing
   float marker_age = (timeInfo.x + timeInfo.w) - colorlife.w;
@@ -173,11 +182,19 @@ void main()
   // Scale the rotated position
   // Apply per-box size multiplier: 1.0, 0.8, 0.6 for box_id 0, 1, 2
   float box_size_multiplier = 1.0 - float(box_id) * 0.25;
-  rotated.x *= size * aspect * box_size_multiplier; // Apply aspect ratio correction to X and box size
-  rotated.y *= size * box_size_multiplier;
+  
+  vec2 stretched;
+  if (isMiniMap > 0.5) {
+    // For minimap, use viewratio for proper aspect ratio correction (like original point tracker)
+    stretched = vec2(rotated.x, rotated.y * viewratio);
+  } else {
+    // For main view, keep square shape without viewratio distortion
+    stretched = vec2(rotated.x, rotated.y);
+  }
+  stretched *= size * box_size_multiplier;
   
   // Add the animated vertex offset in screenspace
-  screenpos += rotated.xy;
+  screenpos += stretched;
   gl_Position = vec4(screenpos, 0.0, 1.0);
   
   // Set color with proper alpha based on box and animation phase
@@ -250,6 +267,7 @@ local function initGL4()
         },
       uniformFloat = {
         isMiniMap = 0,
+        minimapRotation = 0,
         ANIM_BASESIZE = shaderParams.ANIM_BASESIZE,
         ANIM_MIN = shaderParams.ANIM_MIN,
         ANIM_MAX = shaderParams.ANIM_MAX,
@@ -288,15 +306,11 @@ function DrawMapMarksWorld(isMiniMap)
     mapMarkShader:Activate()
     mapMarkShader:SetUniform("isMiniMap",isMiniMap)
     if isMiniMap > 0.5 then
-      -- Calculate minimap aspect ratio (width/height), avoid div0
-      local mmW, mmH = Spring.GetMiniMapGeometry()
-      local aspect = 1.0
-      if mmH and mmH ~= 0 then
-        aspect = mmW / mmH
-      end
-      mapMarkShader:SetUniform("minimapAspect", aspect)
+      -- Set minimap rotation (use same approach as original point tracker)
+      local rotation = getCurrentMiniMapRotationOption()
+      mapMarkShader:SetUniform("minimapRotation", rotation)
     else
-      mapMarkShader:SetUniform("minimapAspect", 1.0)
+      mapMarkShader:SetUniform("minimapRotation", 0)
     end
     drawInstanceVBO(mapMarkInstanceVBO)
     mapMarkShader:Deactivate()
