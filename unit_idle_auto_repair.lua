@@ -10,6 +10,7 @@ local spGetUnitTeam = Spring.GetUnitTeam
 local spGetUnitDefID = Spring.GetUnitDefID
 local spGiveOrderToUnit = Spring.GiveOrderToUnit
 local spAreTeamsAllied = Spring.AreTeamsAllied
+local spGetSelectedUnits = Spring.GetSelectedUnits
 
 -- Commands
 local CMD_REPAIR = CMD.REPAIR
@@ -151,6 +152,8 @@ function widget:GameFrame(n)
     if checkIndex > repairUnitsCount then
         checkIndex = 1
     end
+
+    local selectedUnits = spGetSelectedUnits()
     
     -- Process a subset of units each frame
     local unitsToCheck = math.min(5, repairUnitsCount) -- Check at most 5 units per frame
@@ -158,18 +161,46 @@ function widget:GameFrame(n)
         local arrayIndex = ((checkIndex - 1 + i - 1) % repairUnitsCount) + 1
         local unitInfo = repairUnitsArray[arrayIndex]
         if unitInfo and repairUnits[unitInfo.unitID] then -- Verify unit still exists
-            CheckAndRepairUnit(unitInfo.unitID, unitInfo.data)
+            -- check if the unit is selected
+            local isSelected = false
+            for _, selectedUnitID in ipairs(selectedUnits) do
+                if selectedUnitID == unitInfo.unitID then
+                    isSelected = true
+                    break
+                end
+            end
+
+            if not isSelected then
+                CheckAndRepairUnit(unitInfo.unitID, unitInfo.data)
+            end
         end
     end
 end
 
 function CheckAndRepairUnit(unitID, unitData)
-    -- Check if the unit is idle first (cheapest check)
-    local isIdle = spGetCommandCount(unitID) == 0
-    if not isIdle then
+    -- Only issue repair if the unit is idle (no commands queued)
+    local commandCount = spGetCommandCount(unitID)
+    if commandCount ~= 0 then
+        -- Check if the unit is currently repairing
+        local commands = Spring.GetUnitCommands(unitID, 1)
+        if commands and #commands > 0 and commands[1].id == CMD_REPAIR then
+            local targetID = commands[1].params[1]
+            local posX, posY, posZ = spGetUnitPosition(unitID)
+            local targetX, targetY, targetZ = spGetUnitPosition(targetID)
+            local unitRange = unitData and unitData.range or repairUnitDefs[spGetUnitDefID(unitID)]
+            if posX and targetX and unitRange then
+                local dx = posX - targetX
+                local dz = posZ - targetZ
+                local distSq = dx * dx + dz * dz
+                if distSq > unitRange * unitRange then
+                    -- Target moved out of range, stop repairing
+                    spGiveOrderToUnit(unitID, CMD.STOP, {}, 0)
+                end
+            end
+        end
         return
     end
-    
+
     local posX, posY, posZ = spGetUnitPosition(unitID)
     if not posX then
         -- Unit doesn't exist anymore, remove from tracking
@@ -185,7 +216,7 @@ function CheckAndRepairUnit(unitID, unitData)
     local nearbyUnits = spGetUnitsInCylinder(posX, posZ, unitRange)
     local targetUnit = nil
     local targetHealth = 1.0 -- Start with full health, find most damaged
-    
+
     for _, targetUnitID in ipairs(nearbyUnits) do
         if targetUnitID ~= unitID then
             local targetTeam = spGetUnitTeam(targetUnitID)
@@ -203,7 +234,8 @@ function CheckAndRepairUnit(unitID, unitData)
             end
         end
     end
-    
+
+    -- Issue repair order only if valid target is found
     if targetUnit then
         spGiveOrderToUnit(unitID, CMD_REPAIR, { targetUnit }, 0)
     end
