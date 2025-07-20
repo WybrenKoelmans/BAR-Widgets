@@ -86,9 +86,10 @@ function widget:CommandNotify(cmdID, params, options)
   end
 
   -- Do the command with ALT automatically
+  options.alt = true -- Set alt to true in options
   Spring.Echo("Unit " .. name .. " alt queued.")
   for _, factoryID in ipairs(Spring.GetSelectedUnits()) do
-    Spring.GiveOrderToUnit(factoryID, cmdID, params, { "alt" })
+    Spring.GiveOrderToUnit(factoryID, cmdID, params, options)
   end
   return true
 end
