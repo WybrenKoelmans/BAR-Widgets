@@ -18,7 +18,7 @@ local CMD_REPAIR = CMD.REPAIR
 local repairUnitDefs = {}
 local repairUnits = {} -- [unitID] = {defID = unitDefID, range = range}
 local myTeamID
-local checkIndex = 0 -- For staggered processing
+local checkIndex = 0   -- For staggered processing
 
 function widget:GetInfo()
     return {
@@ -48,14 +48,14 @@ local function updateRepairUnitsArray()
     repairUnitsCount = 0
     for unitID, unitData in pairs(repairUnits) do
         repairUnitsCount = repairUnitsCount + 1
-        repairUnitsArray[repairUnitsCount] = {unitID = unitID, data = unitData}
+        repairUnitsArray[repairUnitsCount] = { unitID = unitID, data = unitData }
     end
 end
 
 function widget:Initialize()
     myTeamID = spGetMyTeamID()
     PrecacheRepairUnitDefs()
-    
+
     -- Process existing units
     local allUnits = Spring.GetAllUnits()
     for i = 1, #allUnits do
@@ -69,7 +69,7 @@ function widget:Initialize()
             }
         end
     end
-    
+
     updateRepairUnitsArray()
 end
 
@@ -135,11 +135,11 @@ function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
 end
 
 function widget:GameFrame(n)
-    -- Only check every 30 frames, stagger units to spread load
-    if n % 30 ~= 0 then
+    -- Only check every 5 frames, stagger units to spread load
+    if n % 5 ~= 0 then
         return
     end
-    
+
     -- Update array if needed (when units are added/removed)
     if repairUnitsCount == 0 or repairUnitsCount ~= 0 and not repairUnitsArray[1] then
         updateRepairUnitsArray()
@@ -147,16 +147,16 @@ function widget:GameFrame(n)
             return
         end
     end
-    
+
     checkIndex = checkIndex + 1
     if checkIndex > repairUnitsCount then
         checkIndex = 1
     end
 
     local selectedUnits = spGetSelectedUnits()
-    
+
     -- Process a subset of units each frame
-    local unitsToCheck = math.min(5, repairUnitsCount) -- Check at most 5 units per frame
+    local unitsToCheck = math.min(20, repairUnitsCount) -- Check at most 20 units per frame
     for i = 1, unitsToCheck do
         local arrayIndex = ((checkIndex - 1 + i - 1) % repairUnitsCount) + 1
         local unitInfo = repairUnitsArray[arrayIndex]
@@ -184,16 +184,36 @@ function CheckAndRepairUnit(unitID, unitData)
         -- Check if the unit is currently repairing
         local commands = Spring.GetUnitCommands(unitID, 1)
         if commands and #commands > 0 and commands[1].id == CMD_REPAIR then
+            -- We regularly will "repair" a building, even though it is just assisting somebody building it
+            -- and it can be far away, plus, buildings don't move, so we can skip the distance check
+            if commands[1].params and #commands[1].params > 0 then
+                -- Check if the target is a building
+                local targetDefID = spGetUnitDefID(commands[1].params[1])
+                if targetDefID and UnitDefs[targetDefID] and UnitDefs[targetDefID].isBuilding then
+                    -- Spring.Echo("Unit " .. unitID .. " is repairing a building, skipping distance check.")
+                    return
+                end
+
+                -- Also check if instead of repair, we are assisting _building_ a unit
+                local targetID = commands[1].params[1]
+                local _, _, _, _, targetIsBeingBuilt = spGetUnitHealth(targetID)
+                if targetIsBeingBuilt and targetIsBeingBuilt < 1.0 then
+                    -- We are assisting a unit being built, so we can skip the distance check
+                    -- Spring.Echo("Unit " .. unitID .. " is assisting a unit being built, skipping distance check.")
+                    return
+                end
+            end
+
+
             local targetID = commands[1].params[1]
             local posX, posY, posZ = spGetUnitPosition(unitID)
             local targetX, targetY, targetZ = spGetUnitPosition(targetID)
             local unitRange = unitData and unitData.range or repairUnitDefs[spGetUnitDefID(unitID)]
             if posX and targetX and unitRange then
-                local dx = posX - targetX
-                local dz = posZ - targetZ
-                local distSq = dx * dx + dz * dz
+                local distSq = math.distance3dSquared(posX, posY, posZ, targetX, targetY, targetZ)
                 if distSq > unitRange * unitRange then
                     -- Target moved out of range, stop repairing
+                    -- Spring.Echo("Unit " .. unitID .. " moved out of range of target " .. targetID .. ", stopping repair.")
                     spGiveOrderToUnit(unitID, CMD.STOP, {}, 0)
                 end
             end
@@ -238,5 +258,6 @@ function CheckAndRepairUnit(unitID, unitData)
     -- Issue repair order only if valid target is found
     if targetUnit then
         spGiveOrderToUnit(unitID, CMD_REPAIR, { targetUnit }, 0)
+        -- Spring.Echo("Unit " .. unitID .. " is repairing unit " .. targetUnit .. ".")
     end
 end
