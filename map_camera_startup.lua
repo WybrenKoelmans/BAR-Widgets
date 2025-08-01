@@ -1,6 +1,4 @@
 local widget = widget ---@type Widget
-local startTimer = 3
-local fase = 0
 
 function widget:GetInfo()
     return {
@@ -13,6 +11,9 @@ function widget:GetInfo()
         enabled = true
     }
 end
+
+local startTimer = 3
+local fase = 0
 
 function widget:Update(dt)
     if (dt > 0.5) then

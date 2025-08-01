@@ -1,13 +1,4 @@
-
-
 local widget = widget ---@type Widget
-
--- Track last 10 resurrected units
-local resurrectedUnits = {}
-
-
-local excludedAllyUnitTypes = {}
-
 function widget:GetInfo()
     return {
         name = "Ressurected Find Ally",
@@ -19,6 +10,10 @@ function widget:GetInfo()
         enabled = true
     }
 end
+
+-- Track last 10 resurrected units
+local resurrectedUnits = {}
+local excludedAllyUnitTypes = {}
 
 function widget:Initialize()
     -- Initialize excluded ally unit types

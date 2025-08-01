@@ -1,19 +1,4 @@
--- Precompute builder and commander tables for efficiency (like unit_builder_priority.lua)
-local unitIsBuilder = {}
-local unitIsCommander = {}
-for udefID, def in ipairs(UnitDefs) do
-    if def.isBuilder and not def.isBuilding then
-        unitIsBuilder[udefID] = true
-        if def.customParams and def.customParams.iscommander then
-            unitIsCommander[udefID] = true
-        end
-    end
-end
 local widget = widget ---@type Widget
-
--- OpenGL functions for drawing
-local gl = gl
-
 
 function widget:GetInfo()
     return {
@@ -26,6 +11,21 @@ function widget:GetInfo()
         enabled = true
     }
 end
+
+-- Precompute builder and commander tables for efficiency (like unit_builder_priority.lua)
+local unitIsBuilder = {}
+local unitIsCommander = {}
+for udefID, def in ipairs(UnitDefs) do
+    if def.isBuilder and not def.isBuilding then
+        unitIsBuilder[udefID] = true
+        if def.customParams and def.customParams.iscommander then
+            unitIsCommander[udefID] = true
+        end
+    end
+end
+
+-- OpenGL functions for drawing
+local gl = gl
 
 local metalNearStart = -1
 local cooldownLeft = 1 -- in seconds

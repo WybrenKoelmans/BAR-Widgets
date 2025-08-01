@@ -1,5 +1,17 @@
 local widget = widget ---@type Widget
 
+function widget:GetInfo()
+    return {
+        name = "Idle Auto Repair",
+        desc = "Idle repair units automatically repair nearby damaged allied units in range",
+        author = "uBdead",
+        date = "2025-07-20",
+        license = "GNU GPL, v2 or later",
+        layer = 0,
+        enabled = true
+    }
+end
+
 -- Performance optimizations
 local spGetCommandCount = Spring.GetUnitCommandCount
 local spGetMyTeamID = Spring.GetMyTeamID
@@ -19,18 +31,6 @@ local repairUnitDefs = {}
 local repairUnits = {} -- [unitID] = {defID = unitDefID, range = range}
 local myTeamID
 local checkIndex = 0   -- For staggered processing
-
-function widget:GetInfo()
-    return {
-        name = "Idle Auto Repair",
-        desc = "Idle repair units automatically repair nearby damaged allied units in range",
-        author = "uBdead",
-        date = "2025-07-20",
-        license = "GNU GPL, v2 or later",
-        layer = 0,
-        enabled = true
-    }
-end
 
 function PrecacheRepairUnitDefs()
     for defID, def in pairs(UnitDefs) do

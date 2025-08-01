@@ -4,7 +4,7 @@ function widget:GetInfo()
   return {
     name    = "Factory Always-Alt Queue",
     desc    = "Always queue certain units (e.g. constructors) with alt (priority) in factories.",
-    author  = "GitHub Copilot",
+    author  = "uBdead",
     date    = "Jul 19 2025",
     license = "GNU GPL, v2 or later",
     layer   = 0, -- high layer to run after other widgets
