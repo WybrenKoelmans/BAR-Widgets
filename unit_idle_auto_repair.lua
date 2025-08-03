@@ -26,11 +26,13 @@ local spGetSelectedUnits = Spring.GetSelectedUnits
 
 -- Commands
 local CMD_REPAIR = CMD.REPAIR
+local CMD_STOP = CMD.STOP
 
 local repairUnitDefs = {}
 local repairUnits = {} -- [unitID] = {defID = unitDefID, range = range}
 local myTeamID
 local checkIndex = 0   -- For staggered processing
+local autoRepairingUnits = {} -- [unitID] = true for units currently repairing
 
 function PrecacheRepairUnitDefs()
     for defID, def in pairs(UnitDefs) do
@@ -102,6 +104,9 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
         -- Mark array as needing update
         repairUnitsCount = 0
     end
+    if autoRepairingUnits[unitID] then
+        autoRepairingUnits[unitID] = nil
+    end
 end
 
 function widget:UnitGiven(unitID, unitDefID, unitTeam, oldTeam)
@@ -138,6 +143,18 @@ function widget:GameFrame(n)
     -- Only check every 5 frames, stagger units to spread load
     if n % 5 ~= 0 then
         return
+    end
+
+    -- Every 30 * 300 frames (1500 frames ~= 25 seconds), do a sanity check on the repair units array
+    if n % (30 * 300) == 0 then
+        local count = 0
+        for unitID, _ in pairs(autoRepairingUnits) do
+            count = count + 1
+        end
+        if count > 1000 then
+            Spring.Echo("unit_idle_auto_repair: possible memory leak.")
+            autoRepairingUnits = {}
+        end
     end
 
     -- Update array if needed (when units are added/removed)
@@ -204,17 +221,18 @@ function CheckAndRepairUnit(unitID, unitData)
                 end
             end
 
-
             local targetID = commands[1].params[1]
             local posX, posY, posZ = spGetUnitPosition(unitID)
             local targetX, targetY, targetZ = spGetUnitPosition(targetID)
             local unitRange = unitData and unitData.range or repairUnitDefs[spGetUnitDefID(unitID)]
             if posX and targetX and unitRange then
                 local distSq = math.distance3dSquared(posX, posY, posZ, targetX, targetY, targetZ)
-                if distSq > unitRange * unitRange then
+                -- check if its the only order
+                local commandCount = spGetCommandCount(unitID)
+                if distSq > unitRange * unitRange and commandCount == 1 and autoRepairingUnits[unitID] then
                     -- Target moved out of range, stop repairing
                     -- Spring.Echo("Unit " .. unitID .. " moved out of range of target " .. targetID .. ", stopping repair.")
-                    spGiveOrderToUnit(unitID, CMD.STOP, {}, 0)
+                    spGiveOrderToUnit(unitID, CMD_STOP, {}, 0)
                 end
             end
         end
@@ -258,6 +276,13 @@ function CheckAndRepairUnit(unitID, unitData)
     -- Issue repair order only if valid target is found
     if targetUnit then
         spGiveOrderToUnit(unitID, CMD_REPAIR, { targetUnit }, 0)
+        autoRepairingUnits[unitID] = true
         -- Spring.Echo("Unit " .. unitID .. " is repairing unit " .. targetUnit .. ".")
+    end
+end
+
+function widget:UnitCmdDone(unitID, unitDefID, unitTeam, cmdID, cmdParams, options, cmdTag)
+    if autoRepairingUnits[unitID] then
+        autoRepairingUnits[unitID] = nil
     end
 end
