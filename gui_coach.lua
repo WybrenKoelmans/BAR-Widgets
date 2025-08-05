@@ -215,6 +215,11 @@ function widget:Update(dt)
 end
 
 function doChecks()
+    if Spring.GetGameFrame() <= 0 then
+        -- Game has not started yet, no checks needed
+        return
+    end
+
     if (metalNearStart == -1 and Spring.GetGameFrame() > 0) then
         local x, _, z = GetCommanderPosition()
         if x and z then
