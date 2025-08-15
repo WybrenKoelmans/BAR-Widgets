@@ -7,7 +7,7 @@ function widget:GetInfo()
     author  = "uBdead",
     date    = "Jul 19 2025",
     license = "GNU GPL, v2 or later",
-    layer   = 0, -- high layer to run after other widgets
+    layer   = 1,
     enabled = true
   }
 end
