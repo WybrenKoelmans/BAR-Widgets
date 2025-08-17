@@ -36,11 +36,11 @@ local function short(n, f)
 	local abs_n = math.abs(n)
 
 	if abs_n > 999999 then
-		return sformat("%." .. f .. "fm", n / 1000000)
+		return sformat("%+." .. f .. "fm", n / 1000000)
 	elseif abs_n > 999 then
-		return sformat("%." .. f .. "fk", n / 1000)
+		return sformat("%+." .. f .. "fk", n / 1000)
 	else
-		return sformat("%d", n)
+		return sformat("%+d", n)
 	end
 end
 
