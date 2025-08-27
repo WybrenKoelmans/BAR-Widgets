@@ -1,8 +1,8 @@
 {
-	"display_name": "gui_sensor_ranges_radar_preview_all",
-	"author": "chmod777 tester",
-	"submodule_path": "Widgets/BAR-Widgets/gui_sensor_ranges_radar_preview_all",
+	"id": "gui_sensor_ranges_radar_preview_all",
+	"display_name": "Sensor Ranges Radar Preview (All radars)",
+	"author": "uBdead",
 	"discord_link": "",
-	"description": "A short description",
-	"entry_point": "/"
+	"github_link": "",
+	"description": "Extend Raytraced Radar Range Coverage on all Radars (GL4)"
 }

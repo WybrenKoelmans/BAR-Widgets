@@ -1,8 +1,8 @@
 {
-	"display_name": "gui_coach",
-	"author": "chmod777 tester",
-	"submodule_path": "Widgets/BAR-Widgets/gui_coach",
+	"id": "gui_coach",
+	"display_name": "Coach",
+	"author": "uBdead",
 	"discord_link": "",
-	"description": "A short description",
-	"entry_point": "/"
+	"github_link": "",
+	"description": "Gives a list of things you should probably do to play well."
 }

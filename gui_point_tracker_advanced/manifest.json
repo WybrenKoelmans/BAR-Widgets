@@ -1,8 +1,8 @@
 {
-	"display_name": "gui_point_tracker_advanced",
-	"author": "chmod777 tester",
-	"submodule_path": "Widgets/BAR-Widgets/gui_point_tracker_advanced",
+	"id": "gui_point_tracker_advanced",
+	"display_name": "Point Tracker Advanced",
+	"author": "uBdead",
 	"discord_link": "",
-	"description": "A short description",
-	"entry_point": "/"
+	"github_link": "",
+	"description": "Allows for customizable point tracking."
 }

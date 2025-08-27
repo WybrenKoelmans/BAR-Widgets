@@ -1,8 +1,8 @@
 {
-	"display_name": "cmd_factory_always_alt",
-	"author": "chmod777 tester",
-	"submodule_path": "Widgets/BAR-Widgets/cmd_factory_always_alt",
+	"id": "cmd_factory_always_alt",
+	"display_name": "Factory Always-Alt Queue",
+	"author": "uBdead",
 	"discord_link": "",
-	"description": "A short description",
-	"entry_point": "/"
+	"github_link": "",
+	"description": "Always queue certain units (e.g. constructors) with alt (priority) in factories."
 }
