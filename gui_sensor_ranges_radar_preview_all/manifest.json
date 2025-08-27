@@ -1,0 +1,8 @@
+{
+	"display_name": "gui_sensor_ranges_radar_preview_all",
+	"author": "chmod777 tester",
+	"submodule_path": "Widgets/BAR-Widgets/gui_sensor_ranges_radar_preview_all",
+	"discord_link": "",
+	"description": "A short description",
+	"entry_point": "/"
+}

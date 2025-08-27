@@ -1,0 +1,8 @@
+{
+	"display_name": "map_camera_startup",
+	"author": "chmod777 tester",
+	"submodule_path": "Widgets/BAR-Widgets/map_camera_startup",
+	"discord_link": "",
+	"description": "A short description",
+	"entry_point": "/"
+}

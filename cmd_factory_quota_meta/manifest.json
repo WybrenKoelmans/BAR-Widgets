@@ -1,0 +1,8 @@
+{
+	"display_name": "cmd_factory_quota_meta",
+	"author": "chmod777 tester",
+	"submodule_path": "Widgets/BAR-Widgets/cmd_factory_quota_meta",
+	"discord_link": "",
+	"description": "A short description",
+	"entry_point": "/"
+}

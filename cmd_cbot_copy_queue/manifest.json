@@ -1,0 +1,8 @@
+{
+	"display_name": "cmd_cbot_copy_queue",
+	"author": "chmod777 tester",
+	"submodule_path": "Widgets/BAR-Widgets/cmd_cbot_copy_queue",
+	"discord_link": "",
+	"description": "A short description",
+	"entry_point": "/"
+}
