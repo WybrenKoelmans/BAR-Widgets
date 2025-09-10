@@ -75,8 +75,10 @@ function widget:Update(dt)
           seenFrame = prev and prev.seenFrame or gf
         }
 
-        -- Send a "STOP" command, so it will start blinking on the map
-        Spring.GiveOrderToUnit(unitID, CMD.STOP, {}, {})
+        -- Send a "STOP" command, so it will start blinking on the map (if the unit is not selected)
+        if not Spring.IsUnitSelected(unitID) then
+          Spring.GiveOrderToUnit(unitID, CMD.STOP, {}, {})
+        end
       end
     end
   end
