@@ -185,8 +185,8 @@ function widget:Update()
         local bx, by, bz = spPos2BuildPos(buildingDefID, worldPos[1], worldPos[2], worldPos[3])
     cursorPos = { x = bx, y = by, z = bz }
 
-    if alt then
-        -- Snapping disabled while alt held
+    if alt or shift then
+        -- Snapping disabled while alt or shift held
         snappedPos = nil
         WG.BuildSnap.position = nil
         if ghostActiveHandle then
