@@ -74,6 +74,9 @@ function widget:Update(dt)
           z = z,
           seenFrame = prev and prev.seenFrame or gf
         }
+
+        -- Send a "STOP" command, so it will start blinking on the map
+        Spring.GiveOrderToUnit(unitID, CMD.STOP, {}, {})
       end
     end
   end
@@ -93,7 +96,7 @@ function widget:DrawInMiniMap(sizeX, sizeY)
       local t = gf - data.seenFrame
       local cycleT = t % blipPeriod
       if cycleT <= blipLifetime then
-        -- Instant in, ease-out (quadratic)
+        -- Idle indicator blip (yellow)
         local alpha = 1 - (cycleT / blipLifetime)^2
         gl.Color(1, 1, 0, alpha)
         gl.Vertex(data.x, data.z)
