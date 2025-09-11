@@ -21,7 +21,7 @@ local DAMAGE_MEMORY_FRAMES = DAMAGE_MEMORY_SECONDS * SIM_FPS
 local damageEvents = {}  -- { {x,z,damage,frame}, ... }
 local clusters = {}      -- { { points = {events}, hull = {x,z}, newestFrame = n }, ... }
 local eventsDirty = false
-local MAX_POINTS = 2000  -- hard cap just in case of extreme spam
+local MAX_POINTS = 200  -- hard cap just in case of extreme spam
 
 -- Drawing config (can be later exposed to options)
 local fillColor = {1, 0, 0, 0.35}  -- RGBA for fill (much more opaque)
@@ -36,8 +36,6 @@ local pulseMin = 0.50                   -- lower multiplier bound
 local pulseMax = 2                   -- upper multiplier bound
 local pulseTime = 0                     -- accumulated time
 local pulseFactor = 1                   -- current factor applied to alpha
-
-
 
 -- Cross product of OA x OB (for convex hull orientation)
 local function cross(o, a, b)
@@ -209,7 +207,7 @@ end
 
 function widget:GameFrame(n)
   -- Periodically purge old events & mark dirty
-  if n % 30 == 0 then -- every second (assuming 30fps sim)
+  if n % 30 == 5 then -- every second (assuming 30fps sim)
     local cutoff = n - DAMAGE_MEMORY_FRAMES
     local newEvents = {}
     local changed = false
