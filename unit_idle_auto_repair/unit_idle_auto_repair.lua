@@ -35,6 +35,15 @@ local ignoreUnitDefNames = {
     cordrag = true, -- ignore walls
     armdrag = true, -- ignore walls
     legdrag = true, -- ignore walls
+    armmine1 = true, -- ignore mines
+    armmine2 = true, -- ignore mines
+    armmine3 = true, -- ignore mines
+    cormine1 = true, -- ignore mines
+    cormine2 = true, -- ignore mines
+    cormine3 = true, -- ignore mines
+    legmine1 = true, -- ignore mines
+    legmine2 = true, -- ignore mines
+    legmine3 = true, -- ignore mines
 }
 
 -- Commands
