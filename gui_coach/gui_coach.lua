@@ -1,3 +1,10 @@
+
+local fontSize = 16 -- default font size, can be changed by options slider
+local fontSizeSubtext = 12
+local fontSizeMin = 9
+local fontSizeMax = 64
+local fontSizeStep = 1
+
 local widget = widget ---@type Widget
 
 function widget:GetInfo()
@@ -504,15 +511,15 @@ function widget:DrawScreen()
     local x = vsx * 0.5 -- 50% from the left
     local y = vsy * 0.9 -- 10% from the top
     local xOffset = 0
-    local iconSize = 32 -- size of the unit icon
-    local iconPadding = 8 -- space between icon and text
-    
+    local iconSize = fontSize * 2 -- icon scales with font size
+    local iconPadding = math.floor(fontSize * 0.5) -- space between icon and text
+
     -- calculate the offset based on the text width (including subtext if present)
     for _, item in ipairs(todoItems) do
         local mainText = "• " .. item.text
-        local textWidth = gl.GetTextWidth(mainText) * 16
+        local textWidth = gl.GetTextWidth(mainText) * fontSize
         if item.subtext then
-            local subWidth = gl.GetTextWidth(item.subtext) * 12
+            local subWidth = gl.GetTextWidth(item.subtext) * fontSizeSubtext
             if subWidth > textWidth then
                 textWidth = subWidth
             end
@@ -527,13 +534,13 @@ function widget:DrawScreen()
     end
     x = x - xOffset / 2      -- center the text horizontally
 
-    local itemSpacing = 44   -- vertical space between top-level items
-    local subtextOffset = 18 -- small offset for subtext, close to main text
-    
+    local itemSpacing = fontSize * 2.75   -- vertical space between top-level items
+    local subtextOffset = fontSize * 1.1 -- small offset for subtext, close to main text
+
     for i, item in ipairs(todoItems) do
         local baseY = y - (i - 1) * itemSpacing
         local currentX = x
-        
+
         -- Draw unit icon if available
         if item.unitpic then
             gl.Color(1, 1, 1, 1) -- reset color
@@ -542,12 +549,35 @@ function widget:DrawScreen()
             gl.Texture(false) -- disable texture
             currentX = currentX + iconSize + iconPadding
         end
-        
+
         -- Draw text
-        gl.Text("• " .. item.text, currentX, baseY, 16, "o")
+        gl.Text("• " .. item.text, currentX, baseY, fontSize, "o")
         if item.subtext then
-            gl.Text(item.subtext, currentX + 24, baseY - subtextOffset, 12, "o")
+            gl.Text(item.subtext, currentX + fontSize + 8, baseY - subtextOffset, fontSizeSubtext, "o")
         end
+    end
+end
+
+function widget:Initialize()
+    -- Register font size option with WG.options if available
+    if WG.options and WG.options.addOption then
+        WG.options.addOption({
+            widgetname = "Coach",
+            id = "coach_fontsize",
+            group = "custom",
+            category = 2,
+            name = "Coach Font Size",
+            type = "slider",
+            min = fontSizeMin,
+            max = fontSizeMax,
+            step = fontSizeStep,
+            value = fontSize,
+            description = "Adjust the font size for the Coach todo list.",
+            onchange = function(_, value)
+                fontSize = tonumber(value)
+                fontSizeSubtext = math.floor(fontSize * 0.75)
+            end
+        })
     end
 end
 
