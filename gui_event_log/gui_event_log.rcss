@@ -96,3 +96,14 @@ handle[move_target] {
     cursor: move;
 }
 
+.events-container {
+
+}
+
+.event {
+    display: flex;
+}
+
+.event img {
+    height: 18dp;
+}

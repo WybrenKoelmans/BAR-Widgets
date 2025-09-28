@@ -1,19 +1,19 @@
 <rml>
-
     <head>
-        <link type="text/rcss" href="gui_event_log.rcss" />
+        <title>Event Log</title>
+        <link rel="stylesheet" href="gui_event_log.rcss" type="text/rcss" />
     </head>
-
-    <body data-model="gui_event_log" style="right: 10%; top: 10%;">
-        <handle move_target="#document">
-            <h4>Event Log</h4>
-        </handle>
-        <div>{{example}}</div>
-        <div data-for="event : events">
-            <div class="event-item">
-                <span class="event-time">{{event.time}}</span>
-                <span class="event-type">{{event.type}}</span>
-                <span class="event-message">{{event.message}}</span>
+    <body id="gui_event_log-widget" style="right: 10%; top: 10%;">
+        <div id="widget-container" data-model="gui_event_log_model" class="bg-black-semi-alpha">
+            <handle move_target="#document">
+                <h4 class="text-white" onclick="widget:Reload()">Events</h4>
+            </handle>
+            <div class="events-container">
+                <div data-for="e : events" class="event">
+                    <div><img data-attr-src="e.icon" class="icon-small" data-event-click="test(e)"/></div>
+                    <div>{{e.message}}</div>
+                    <div>{{e.time}}</div>
+                </div>
             </div>
         </div>
     </body>
