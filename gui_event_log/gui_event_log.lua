@@ -9,9 +9,9 @@ local icontypes = VFS.Include("gamedata/icontypes.lua")
 
 function widget:GetInfo()
 	return {
-		name = "gui_event_log",
-		desc = "Generated RML widget template",
-		author = "Generated from rml_starter/generate-widget.sh",
+		name = "BattleLog",
+		desc = "Displays important battle events in a log",
+		author = "uBdead",
 		date = "2025",
 		license = "GNU GPL, v2 or later",
 		layer = -1000000,
