@@ -1,18 +1,30 @@
 <rml>
+
     <head>
         <title>Event Log</title>
         <link rel="stylesheet" href="gui_event_log.rcss" type="text/rcss" />
     </head>
+
     <body id="gui_event_log-widget" style="right: 10%; top: 10%;">
         <div id="widget-container" data-model="gui_event_log_model" class="bg-black-semi-alpha">
             <handle move_target="#document">
-                <h4 class="text-white" onclick="widget:Reload()">Events</h4>
+                <h4 class="text-white">Battle Log
+                    <button data-event-click="settechlevel(1)" data-class-on="techlevel == 1">T1</button>
+                    <button data-event-click="settechlevel(2)" data-class-on="techlevel <= 2">T2</button>
+                    <button data-event-click="settechlevel(3)" data-class-on="techlevel <= 3">T3</button>
+                </h4>
             </handle>
             <div class="events-container">
-                <div data-for="e : events" class="event">
-                    <div><img data-attr-src="e.icon" class="icon-small" data-event-click="test(e)"/></div>
-                    <div>{{e.message}}</div>
-                    <div>{{e.time}}</div>
+                <div data-for="e : events" class="event" data-event-click="eventclick(it_index)"
+                    data-class-hide="e.frame + e.duration * 30 < currentFrame"
+                    data-class-init="e.frame + 30 >= currentFrame" 
+                    data-class-old="e.frame < currentFrame - 300"
+                    data-class-good="e.type == 'good'" 
+                    data-class-neutral="e.type == 'neutral'"
+                    data-class-bad="e.type == 'bad'" 
+                    data-class-terrible="e.type == 'terrible'">
+                    <div><img data-attr-src="e.icon" /></div>
+                    <div>{{e.message}}<span data-if="e.multiplier > 1"> x{{e.multiplier}}</span></div>
                 </div>
             </div>
         </div>

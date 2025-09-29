@@ -96,14 +96,71 @@ handle[move_target] {
     cursor: move;
 }
 
-.events-container {
+#gui_event_log-widget {
+    min-width: 400dp;
+}
 
+#gui_event_log-widget h4 button {
+    background-color: rgba(0, 0, 0, 128);
+    cursor: pointer;
+    padding: 2dp 6dp;
+    border-radius: 4dp;
+    margin-right: 4dp;
+}
+
+#gui_event_log-widget h4 button.on {
+    background-color: rgba(128, 128, 128, 128);
+}
+
+#gui_event_log-widget h4 button:hover {
+    background-color: rgba(255, 255, 255, 128);
+}
+
+#gui_event_log-widget h4 button:active {
+    background-color: rgba(255, 255, 255, 192);
 }
 
 .event {
     display: flex;
+    opacity: 1;
+    padding: 8dp 12dp;
+    transition: opacity transform 0.5s quintic-in-out;
+}
+
+.event:hover {
+    background-color: rgba(0, 0, 0, 128);
+    cursor: pointer;
 }
 
 .event img {
     height: 18dp;
+    margin-right: 8dp;
+}
+
+.event.old {
+    opacity: 0.5;
+}
+
+.event.hide {
+    opacity: 0;
+}
+
+.event.init {
+    transform: scale(1.2);
+}
+
+.event.good {
+    color: rgb(212, 255, 212);
+}
+
+.event.bad {
+    color: rgb(255, 215, 215);
+}
+
+.event.neutral {
+    color: rgb(255, 255, 229);
+}
+
+.event.terrible {
+    color: rgb(255, 220, 255);
 }
