@@ -2,10 +2,10 @@ if not RmlUi then
 	return false
 end
 
+local widget = widget ---@type Widget
+
 -- Load icontypes table from BAR.sdd/gamedata/icontypes.lua
 local icontypes = VFS.Include("gamedata/icontypes.lua")
-
-local widget = widget ---@type Widget
 
 function widget:GetInfo()
 	return {
@@ -20,9 +20,42 @@ function widget:GetInfo()
 end
 
 local nukers = {}
-local gaiaTeamID = Spring.GetGaiaTeamID()
-local ourTeamID = Spring.GetMyTeamID()
+
+local spEcho = Spring.Echo
+local spGetGaiaTeamID = Spring.GetGaiaTeamID
+local spGetMyTeamID = Spring.GetMyTeamID
 local spIsUnitAllied = Spring.IsUnitAllied
+local spGetAllUnits = Spring.GetAllUnits
+local spGetUnitTeam = Spring.GetUnitTeam
+local spGetUnitIsDead = Spring.GetUnitIsDead
+local spGetUnitIsBeingBuilt = Spring.GetUnitIsBeingBuilt
+local spGetUnitCommandCount = Spring.GetUnitCommandCount
+local spGetTimer = Spring.GetTimer
+local spDiffTimers = Spring.DiffTimers
+local spGetLocalTeamID = Spring.GetLocalTeamID
+local spGetUnitPosition = Spring.GetUnitPosition
+local spIsUnitSelected = Spring.IsUnitSelected
+local spSetCameraTarget = Spring.SetCameraTarget
+local spSelectUnit = Spring.SelectUnit
+local spGetGameFrame = Spring.GetGameFrame
+local spGetUnitDefID = Spring.GetUnitDefID
+local spGetSelectedUnitsCount = Spring.GetSelectedUnitsCount
+
+local unitDefIDCache = {}
+local function GetUnitDefID(unitID)
+	if unitDefIDCache[unitID] then
+		return unitDefIDCache[unitID]
+	end
+	local unitDefID = spGetUnitDefID(unitID)
+	if unitDefID then
+		unitDefIDCache[unitID] = unitDefID
+	end
+	return unitDefID
+end
+
+local gaiaTeamID = spGetGaiaTeamID()
+local ourTeamID = spGetMyTeamID()
+local myTeamID = spGetLocalTeamID and spGetLocalTeamID() or ourTeamID -- Cache team ID
 local unitOfInterest = {} -- unitDefID
 local gameOver = false;
 local hasSeenT2 = false
@@ -32,16 +65,25 @@ local idleConstructors = {}
 
 -- Update the list of idle constructor units
 local function updateList()
-	for unitID, _ in pairs(idleConstructors) do
-		idleConstructors[unitID] = nil
+	-- Clear dead units from cache efficiently
+	for unitID in pairs(idleConstructors) do
+		if spGetUnitIsDead(unitID) then
+			idleConstructors[unitID] = nil
+			unitDefIDCache[unitID] = nil
+		end
 	end
-	local myTeamID = Spring.GetLocalTeamID and Spring.GetLocalTeamID() or Spring.GetMyTeamID()
-	for unitID, unitDefID in pairs(Spring.GetAllUnits and Spring.GetAllUnits() or {}) do
-		if constructorDefIDs[unitDefID] and Spring.GetUnitTeam(unitID) == myTeamID then
-			if not Spring.GetUnitIsDead(unitID) and not Spring.GetUnitIsBeingBuilt(unitID) then
-				local queue = Spring.GetUnitCommandCount(unitID) or 0
+	
+	local allUnits = spGetAllUnits and spGetAllUnits() or {}
+	
+	for _, unitID in ipairs(allUnits) do
+		local unitDefID = GetUnitDefID(unitID)
+		if unitDefID and constructorDefIDs[unitDefID] and spGetUnitTeam(unitID) == myTeamID then
+			if not spGetUnitIsDead(unitID) and not spGetUnitIsBeingBuilt(unitID) then
+				local queue = spGetUnitCommandCount(unitID) or 0
 				if queue == 0 then
 					idleConstructors[unitID] = true
+				else
+					idleConstructors[unitID] = nil
 				end
 			end
 		end
@@ -51,11 +93,7 @@ end
 -- Commander under attack logic
 local isCommander = {}
 local commanderAlarmInterval = 10 -- seconds
-local lastCommanderAlarmTime = Spring.GetTimer()
-local spGetTimer = Spring.GetTimer
-local spDiffTimers = Spring.DiffTimers
-local spGetLocalTeamID = Spring.GetLocalTeamID
-local localTeamID = nil
+local lastCommanderAlarmTime = spGetTimer()
 
 -- Constants
 local WIDGET_NAME = "gui_event_log"
@@ -73,20 +111,18 @@ local function click(index)
 	local clickedItem = init_model.events[index + 1]
 	local x, y, z = nil, nil, nil
 	if clickedItem.unitid then
-		x, y, z = Spring.GetUnitPosition(clickedItem.unitid)
+		x, y, z = spGetUnitPosition(clickedItem.unitid)
 	end
-	if clickedItem.unitid and x and z then
-		if (Spring.IsUnitSelected(clickedItem.unitid)) then
-			if x and z then
-				Spring.SetCameraTarget(x, y, z)
-			end
+	if clickedItem.unitid and x and y and z then
+		if (spIsUnitSelected(clickedItem.unitid)) then
+			spSetCameraTarget(x, y, z)
 			return
 		end
-		Spring.SelectUnit(clickedItem.unitid)
+		spSelectUnit(clickedItem.unitid)
 		return
 	end
 	if clickedItem.point then
-		Spring.SetCameraTarget(clickedItem.point.x, 0, clickedItem.point.z)
+		spSetCameraTarget(clickedItem.point.x, 0, clickedItem.point.z)
 	end
 end
 
@@ -95,12 +131,12 @@ init_model = {
 	debugMode = false,
 	events = {},
 	eventclick = function(ev, i)
-		-- Spring.Echo("ev parameters:", ev.parameters.button)
+		-- spEcho("ev parameters:", ev.parameters.button)
 		click(i)
 	end,
 	settechlevel = function(ev, level)
 		dm_handle.techlevel = level
-		Spring.Echo("Set Tech Level filter to " .. tostring(level))
+		spEcho("Set Tech Level filter to " .. tostring(level))
 	end,
 	currentFrame = 0,
 	techlevel = 1,
@@ -111,7 +147,7 @@ local function AddEvent(event)
 		return
 	end
 	if event.frame == nil then
-		event.frame = Spring.GetGameFrame()
+		event.frame = spGetGameFrame()
 	end
 	if event.multiplier == nil then
 		event.multiplier = 1
@@ -122,29 +158,33 @@ local function AddEvent(event)
 
 	lastEventAdded = event
 
-	-- check if we are having the same event (same message, similar position)
-	for i, existing_event in ipairs(init_model.events) do
+	-- Optimized event deduplication - check only recent events (first 5)
+	local eventsToCheck = math.min(5, #init_model.events)
+	for i = 1, eventsToCheck do
+		local existing_event = init_model.events[i]
 		if existing_event.message == event.message then
-			local dx, dz = 0, 0
+			local withinDistance = true
 			if existing_event.point and event.point then
-				dx = existing_event.point.x - event.point.x
-				dz = existing_event.point.z - event.point.z
+				local dx = existing_event.point.x - event.point.x
+				local dz = existing_event.point.z - event.point.z
+				-- Use squared distance to avoid sqrt calculation
+				local dist2 = dx * dx + dz * dz
+				withinDistance = dist2 < 4000000 -- 2000^2
 			end
-			local dist2 = dx * dx + dz * dz
-			if dist2 < 2000 * 2000 then -- within 2000 units
-				-- just increase the multiplier and update the frame
+			
+			if withinDistance then
+				-- Update existing event
 				existing_event.multiplier = (existing_event.multiplier or 1) + 1
 				existing_event.frame = event.frame
 				if event.point then
-					existing_event.point = event.point -- update to the latest position
+					existing_event.point = event.point
 				end
 				if event.unitid then
-					existing_event.unitid = event.unitid -- update to the latest unitid
+					existing_event.unitid = event.unitid
 				end
 				if event.icon then
-					existing_event.icon = event.icon -- update to the latest icon
+					existing_event.icon = event.icon
 				end
-
 				dm_handle.events = init_model.events
 				return
 			end
@@ -153,19 +193,18 @@ local function AddEvent(event)
 
 	table.insert(init_model.events, 1, event)
 	if #init_model.events > 25 then
-		table.remove(init_model.events) -- Remove the oldest event, keep only the latest 25 events
+		table.remove(init_model.events) -- Remove the oldest event
 	end
-	dm_handle.events = init_model
-		.events -- TODO: ideally we just manipulate dm_handle directly and it would update the UI, but how?
+	dm_handle.events = init_model.events
 end
 
 function widget:Initialize()
 	if widget:GetInfo().enabled == false then
-		Spring.Echo(WIDGET_NAME .. ": Widget is disabled, skipping initialization")
+		spEcho(WIDGET_NAME .. ": Widget is disabled, skipping initialization")
 		return false
 	end
 
-	Spring.Echo(WIDGET_NAME .. ": Initializing widget...")
+	spEcho(WIDGET_NAME .. ": Initializing widget...")
 
 	for k, v in pairs(UnitDefs) do
 		if v.customParams.unitgroup == "nuke" then
@@ -182,23 +221,23 @@ function widget:Initialize()
 	-- Get the shared RML context
 	widget.rmlContext = RmlUi.GetContext("shared")
 	if not widget.rmlContext then
-		Spring.Echo(WIDGET_NAME .. ": ERROR - Failed to get RML context")
+		spEcho(WIDGET_NAME .. ": ERROR - Failed to get RML context")
 		return false
 	end
 
 	-- Create and bind the data model
 	dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, init_model)
 	if not dm_handle then
-		Spring.Echo(WIDGET_NAME .. ": ERROR - Failed to create data model")
+		spEcho(WIDGET_NAME .. ": ERROR - Failed to create data model")
 		return false
 	end
 
-	Spring.Echo(WIDGET_NAME .. ": Data model created successfully")
+	spEcho(WIDGET_NAME .. ": Data model created successfully")
 
 	-- Load the RML document
 	document = widget.rmlContext:LoadDocument(RML_PATH, widget)
 	if not document then
-		Spring.Echo(WIDGET_NAME .. ": ERROR - Failed to load document: " .. RML_PATH)
+		spEcho(WIDGET_NAME .. ": ERROR - Failed to load document: " .. RML_PATH)
 		widget:Shutdown()
 		return false
 	end
@@ -206,7 +245,7 @@ function widget:Initialize()
 	-- Apply styles and show the document
 	document:ReloadStyleSheet()
 	document:Show()
-	Spring.Echo(WIDGET_NAME .. ": Widget initialized successfully")
+	spEcho(WIDGET_NAME .. ": Widget initialized successfully")
 
 	-- RmlUi.SetDebugContext('shared')
 
@@ -214,7 +253,7 @@ function widget:Initialize()
 end
 
 function widget:Shutdown()
-	Spring.Echo(WIDGET_NAME .. ": Shutting down widget...")
+	spEcho(WIDGET_NAME .. ": Shutting down widget...")
 
 	-- Clean up data model
 	if widget.rmlContext and dm_handle then
@@ -229,12 +268,12 @@ function widget:Shutdown()
 	end
 
 	widget.rmlContext = nil
-	Spring.Echo(WIDGET_NAME .. ": Shutdown complete")
+	spEcho(WIDGET_NAME .. ": Shutdown complete")
 end
 
 -- Widget functions callable from RML
 function widget:Reload()
-	Spring.Echo(WIDGET_NAME .. ": Reloading widget...")
+	spEcho(WIDGET_NAME .. ": Reloading widget...")
 	widget:Shutdown()
 	widget:Initialize()
 end
@@ -245,10 +284,10 @@ function widget:ToggleDebugger()
 
 		if dm_handle.debugMode then
 			RmlUi.SetDebugContext('shared')
-			Spring.Echo(WIDGET_NAME .. ": RmlUi debugger enabled")
+			spEcho(WIDGET_NAME .. ": RmlUi debugger enabled")
 		else
 			RmlUi.SetDebugContext(nil)
-			Spring.Echo(WIDGET_NAME .. ": RmlUi debugger disabled")
+			spEcho(WIDGET_NAME .. ": RmlUi debugger disabled")
 		end
 	end
 end
@@ -263,7 +302,10 @@ end
 
 function widget:GameFrame(frame)
 	dm_handle.currentFrame = frame
-	updateList() -- TODO: probably not every frame needed
+	-- Only update idle constructors every 30 frames (1 second at 30fps)
+	if frame % 30 == 0 then
+		updateList()
+	end
 end
 
 function widget:StockpileChanged(unitID, unitDefID, unitTeam, weaponNum, oldCount, newCount)
@@ -273,13 +315,14 @@ function widget:StockpileChanged(unitID, unitDefID, unitTeam, weaponNum, oldCoun
 end
 
 function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam)
+	unitDefIDCache[unitID] = nil
 	if not spIsUnitAllied(unitID) then
 		if isCommander[unitDefID] then
 			local unitDef = UnitDefs[unitDefID]
 			local iconType = unitDef and unitDef.iconType
 			local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
 			local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
-			local x, y, z = Spring.GetUnitPosition(unitID)
+			local x, y, z = spGetUnitPosition(unitID)
 
 			AddEvent({
 				message = "Enemy Commander destroyed!",
@@ -295,7 +338,7 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
 			local iconType = unitDef and unitDef.iconType
 			local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
 			local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
-			local x, y, z = Spring.GetUnitPosition(unitID)
+			local x, y, z = spGetUnitPosition(unitID)
 
 			AddEvent({
 				message = "Allied Commander destroyed!",
@@ -304,6 +347,10 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
 				point = { x = x, z = z }
 			})
 		end
+	end
+
+	if unitTeam ~= ourTeamID then
+		return
 	end
 
 	-- Remove from idleConstructors if present
@@ -331,7 +378,7 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
 		icon = iconPath,
 	}
 
-	local x, y, z = Spring.GetUnitPosition(unitID)
+	local x, y, z = spGetUnitPosition(unitID)
 	if x and z then
 		event.point = { x = x, z = z }
 	end
@@ -344,7 +391,7 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 		return
 	end
 
-	local unitDefID = Spring.GetUnitDefID(unitID)
+	local unitDefID = GetUnitDefID(unitID)
 	local unitDef = unitDefID and UnitDefs[unitDefID]
 	if not unitDef then return end
 	local techlevel = unitDef and unitDef.customParams and tonumber(unitDef.customParams.techlevel) or nil
@@ -354,7 +401,7 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 			local iconType = unitDef and unitDef.iconType
 			local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
 			local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
-			local x, y, z = Spring.GetUnitPosition(unitID)
+			local x, y, z = spGetUnitPosition(unitID)
 			AddEvent({ message = "Enemy T2 Building Spotted", type = "neutral", icon = iconPath, point = { x = x, z = z } })
 		end
 
@@ -363,7 +410,7 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 			local iconType = unitDef and unitDef.iconType
 			local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
 			local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
-			local x, y, z = Spring.GetUnitPosition(unitID)
+			local x, y, z = spGetUnitPosition(unitID)
 			AddEvent({ message = "Enemy T3 Building Spotted", type = "neutral", icon = iconPath, point = { x = x, z = z } })
 		end
 
@@ -377,7 +424,7 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 	local iconType = unitDef and unitDef.iconType
 	local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
 	local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
-	local x, y, z = Spring.GetUnitPosition(unitID)
+	local x, y, z = spGetUnitPosition(unitID)
 	local prefix = ""
 
 	if techlevel and techlevel > 1 then
@@ -421,9 +468,10 @@ end
 
 -- Commander under attack event
 function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer)
-	if localTeamID == nil then localTeamID = spGetLocalTeamID() end
-	if unitTeam ~= localTeamID then return false end
-	if damage < 10 then return end
+	-- Early exit for non-allied units and small damage
+	if unitTeam ~= myTeamID or damage < 10 then 
+		return 
+	end
 
 	if CommanderDamaged(unitID, unitDefID, unitTeam, damage, paralyzer) then
 		return
@@ -436,11 +484,10 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer)
 		return
 	end
 
-
 	local iconType = unitDef and unitDef.iconType
 	local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
 	local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
-	local x, y, z = Spring.GetUnitPosition(unitID)
+	local x, y, z = spGetUnitPosition(unitID)
 
 	AddEvent({
 		message = "Unit under attack",
@@ -455,27 +502,27 @@ end
 function widget:KeyPress(key, mods, isRepeat, label, unicode)
 	if not lastEventAdded then return false end
 	-- 32 is the keycode for spacebar
-	if key == 32 and Spring.GetSelectedUnitsCount() == 0 then
+	if key == 32 and spGetSelectedUnitsCount() == 0 then
 		local x, y, z = nil, nil, nil
 		if lastEventAdded and lastEventAdded.unitid then
-			x, y, z = Spring.GetUnitPosition(lastEventAdded.unitid)
+			x, y, z = spGetUnitPosition(lastEventAdded.unitid)
 		end
-		if x and y then -- unit is still alive
-			Spring.SetCameraTarget(x, y, z)
-			Spring.SelectUnit(lastEventAdded.unitid)
+		if x and y and z then -- unit is still alive
+			spSetCameraTarget(x, y, z)
+			spSelectUnit(lastEventAdded.unitid)
 			return true
 		end
 		if lastEventAdded and lastEventAdded.point then
-			Spring.SetCameraTarget(lastEventAdded.point.x, 0, lastEventAdded.point.z)
+			spSetCameraTarget(lastEventAdded.point.x, 0, lastEventAdded.point.z)
 			return true
 		end
 
 		-- go to the an idle constructor if any
 		for unitID, _ in pairs(idleConstructors) do
-			x, y, z = Spring.GetUnitPosition(unitID)
-			if x and y then -- unit is still alive
-				Spring.SetCameraTarget(x, y, z)
-				Spring.SelectUnit(unitID)
+			x, y, z = spGetUnitPosition(unitID)
+			if x and y and z then -- unit is still alive
+				spSetCameraTarget(x, y, z)
+				spSelectUnit(unitID)
 				return true
 			else
 				idleConstructors[unitID] = nil -- remove dead unit from the list
@@ -494,7 +541,7 @@ function widget:UnitIdle(unitID, unitDefID, unitTeam)
 		local iconType = unitDef and unitDef.iconType
 		local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
 		local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
-		local x, y, z = Spring.GetUnitPosition(unitID)
+		local x, y, z = spGetUnitPosition(unitID)
 		-- add the tech level
 		local techlevel = unitDef and unitDef.customParams and tonumber(unitDef.customParams.techlevel) or nil
 
@@ -527,8 +574,10 @@ end
 
 function widget:UnitGiven(unitID, unitDefID, newTeam, oldTeam)
 	idleConstructors[unitID] = nil
+	unitDefIDCache[unitID] = nil
 end
 
 function widget:UnitTaken(unitID, unitDefID, oldTeam, newTeam)
 	idleConstructors[unitID] = nil
+	unitDefIDCache[unitID] = nil
 end
