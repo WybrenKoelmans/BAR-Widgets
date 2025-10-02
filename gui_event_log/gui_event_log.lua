@@ -56,12 +56,36 @@ end
 local gaiaTeamID = spGetGaiaTeamID()
 local ourTeamID = spGetMyTeamID()
 local myTeamID = spGetLocalTeamID and spGetLocalTeamID() or ourTeamID -- Cache team ID
-local unitOfInterest = {} -- unitDefID
+local unitOfInterest = {
+	armanni = true,
+	armarad = true,
+	armbanth = true,
+	armbrtha = true,
+	armrad = true,
+	armsilo = true,
+	armthor = true,
+	armvulcan = true,
+	corarad = true,
+	corbuzz = true,
+	cordoom = true,
+	corinth = true,
+	corjugg = true,
+	corkorg = true,
+	corrad = true,
+	corsilo = true,
+	legarad = true,
+	legrad = true,
+	corcom = true,
+	armcom = true,
+	legcom = true,
+} -- unitDefID
+
 local gameOver = false;
 local hasSeenT2 = false
 local hasSeenT3 = false
 local constructorDefIDs = {}
 local idleConstructors = {}
+local lastRemovalCheckFrame = 0
 
 -- Update the list of idle constructor units
 local function updateList()
@@ -72,9 +96,9 @@ local function updateList()
 			unitDefIDCache[unitID] = nil
 		end
 	end
-	
+
 	local allUnits = spGetAllUnits and spGetAllUnits() or {}
-	
+
 	for _, unitID in ipairs(allUnits) do
 		local unitDefID = GetUnitDefID(unitID)
 		if unitDefID and constructorDefIDs[unitDefID] and spGetUnitTeam(unitID) == myTeamID then
@@ -158,9 +182,8 @@ local function AddEvent(event)
 
 	lastEventAdded = event
 
-	-- Optimized event deduplication - check only recent events (first 5)
-	local eventsToCheck = math.min(5, #init_model.events)
-	for i = 1, eventsToCheck do
+	-- Reverted optimization: check all events for deduplication
+	for i = 1, #init_model.events do
 		local existing_event = init_model.events[i]
 		if existing_event.message == event.message then
 			local withinDistance = true
@@ -171,7 +194,7 @@ local function AddEvent(event)
 				local dist2 = dx * dx + dz * dz
 				withinDistance = dist2 < 4000000 -- 2000^2
 			end
-			
+
 			if withinDistance then
 				-- Update existing event
 				existing_event.multiplier = (existing_event.multiplier or 1) + 1
@@ -216,6 +239,12 @@ function widget:Initialize()
 		if v.canAssist and not v.isFactory then
 			constructorDefIDs[k] = true
 		end
+
+		-- check if the unitdef name is in the unitOfInterest list, then replace it with its id
+		if unitOfInterest[v.name] then
+			unitOfInterest[k] = { translatedHumanName = v.translatedHumanName or v.name or "Unit" }
+			unitOfInterest[v.name] = nil
+		end
 	end
 
 	-- Get the shared RML context
@@ -250,6 +279,68 @@ function widget:Initialize()
 	-- RmlUi.SetDebugContext('shared')
 
 	return true
+end
+
+function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID, reason, silent)
+	unitDefIDCache[unitID] = unitDefID
+
+	local unitDef = UnitDefs[unitDefID] -- TODO cache these?
+	if not unitDef.isFactory then
+		return
+	end
+
+	if not spIsUnitAllied(unitID) then
+		return
+	end
+
+	local name = unitDef.translatedHumanName or unitDef.name or "Factory"
+	local iconType = unitDef and unitDef.iconType
+	local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
+	local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
+	local x, y, z = spGetUnitPosition(unitID)
+
+	local event = {
+		message = name .. " under construction.",
+		type = "good",
+		icon = iconPath,
+		point = { x = x, z = z }
+	}
+	if (unitTeam == myTeamID) then
+		event.unitid = unitID
+	end
+
+	AddEvent(event)
+end
+
+function widget:UnitFinished(unitID, unitDefID, unitTeam)
+	unitDefIDCache[unitID] = unitDefID
+
+	if not spIsUnitAllied(unitID) then
+		return
+	end
+
+	local unitDef = UnitDefs[unitDefID]
+	if not unitDef.isFactory then
+		return
+	end
+
+	local name = unitDef.translatedHumanName or unitDef.name or "Unit"
+	local iconType = unitDef and unitDef.iconType
+	local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
+	local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
+	local x, y, z = spGetUnitPosition(unitID)
+
+	local event = {
+		message = name .. " completed.",
+		type = "good",
+		icon = iconPath,
+		point = { x = x, z = z }
+	}
+	if (unitTeam == myTeamID) then
+		event.unitid = unitID
+	end
+
+	AddEvent(event)
 end
 
 function widget:Shutdown()
@@ -306,11 +397,40 @@ function widget:GameFrame(frame)
 	if frame % 30 == 0 then
 		updateList()
 	end
+
+	-- Periodically clean up old events
+	if frame - lastRemovalCheckFrame >= 150 then -- every 5 seconds at 30
+		local beforeEvents = #init_model.events
+		lastRemovalCheckFrame = frame
+		local currentTime = spGetGameFrame()
+		local i = 1
+		while i <= #init_model.events do
+			local event = init_model.events[i]
+			if event.frame and event.duration then
+				local ageInFrames = currentTime - event.frame
+				if ageInFrames > (event.duration * 30) then -- Convert duration from seconds to frames
+					table.remove(init_model.events, i)
+				else
+					i = i + 1
+				end
+			else
+				i = i + 1
+			end
+		end
+		dm_handle.events = init_model.events
+		local afterEvents = #init_model.events
+		Spring.Echo(WIDGET_NAME ..
+		": Removed " .. (beforeEvents - afterEvents) .. " old events, " .. afterEvents .. " remain.")
+	end
 end
 
 function widget:StockpileChanged(unitID, unitDefID, unitTeam, weaponNum, oldCount, newCount)
-	if nukers[unitDefID] and oldCount == 0 and newCount > 0 then
-		AddEvent({ message = "Nuclear Missile Ready", type = "good", icon = "/icons/nuke.png", unitid = unitID })
+	if nukers[unitDefID] then
+		if oldCount == 0 and newCount > 0 then
+			AddEvent({ message = "Nuclear Missile Ready", type = "good", icon = "/icons/nuke.png", unitid = unitID })
+		elseif oldCount > 0 and newCount < oldCount then
+			AddEvent({ message = "Nuclear Missile Launched", type = "good", icon = "/icons/nuke.png", unitid = unitID })
+		end
 	end
 end
 
@@ -326,7 +446,7 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
 
 			AddEvent({
 				message = "Enemy Commander destroyed!",
-				type = "bad",
+				type = "good",
 				icon = iconPath,
 				point = { x = x, z = z }
 			})
@@ -358,7 +478,7 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
 
 	local unitDef = UnitDefs[unitDefID]
 	local techlevel = unitDef and unitDef.customParams and tonumber(unitDef.customParams.techlevel) or nil
-	if techlevel < dm_handle.techlevel then
+	if techlevel < dm_handle.techlevel and not unitOfInterest[unitDefID] and not unitDef.isFactory then
 		return
 	end
 
@@ -370,6 +490,9 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
 	local message = "Unit lost"
 	if unitDef and unitDef.isBuilding then
 		message = "Structure lost"
+	end
+	if unitOfInterest[unitDefID] and unitOfInterest[unitDefID].translatedHumanName then
+		message = unitOfInterest[unitDefID].translatedHumanName .. " lost"
 	end
 
 	local event = {
@@ -402,7 +525,11 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 			local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
 			local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
 			local x, y, z = spGetUnitPosition(unitID)
-			AddEvent({ message = "Enemy T2 Building Spotted", type = "neutral", icon = iconPath, point = { x = x, z = z } })
+			local message = "Enemy T2 Building Spotted"
+			if unitOfInterest[unitDefID] and unitOfInterest[unitDefID].translatedHumanName then
+				message = unitOfInterest[unitDefID].translatedHumanName .. " Spotted"
+			end
+			AddEvent({ message = message, type = "neutral", icon = iconPath, point = { x = x, z = z } })
 		end
 
 		if not hasSeenT3 and techlevel and techlevel == 3 then
@@ -411,13 +538,18 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 			local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
 			local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
 			local x, y, z = spGetUnitPosition(unitID)
-			AddEvent({ message = "Enemy T3 Building Spotted", type = "neutral", icon = iconPath, point = { x = x, z = z } })
+			local message = "Enemy T3 Building Spotted"
+			if unitOfInterest[unitDefID] and unitOfInterest[unitDefID].translatedHumanName then
+				message = unitOfInterest[unitDefID].translatedHumanName .. " Spotted"
+			end
+
+			AddEvent({ message = message, type = "neutral", icon = iconPath, point = { x = x, z = z } })
 		end
 
 		return
 	end
 
-	if techlevel < dm_handle.techlevel and not isCommander[unitDefID] then
+	if techlevel < dm_handle.techlevel and not isCommander[unitDefID] and not unitOfInterest[unitDefID] then
 		return
 	end
 
@@ -432,6 +564,10 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 	end
 
 	local message = "Enemy" .. prefix .. " Spotted"
+	if unitOfInterest[unitDefID] and unitOfInterest[unitDefID].translatedHumanName then
+		message = unitOfInterest[unitDefID].translatedHumanName .. " Spotted"
+	end
+
 	AddEvent({ message = message, type = "bad", icon = iconPath, point = { x = x, z = z } })
 end
 
@@ -469,8 +605,8 @@ end
 -- Commander under attack event
 function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer)
 	-- Early exit for non-allied units and small damage
-	if unitTeam ~= myTeamID or damage < 10 then 
-		return 
+	if unitTeam ~= myTeamID or damage < 10 then
+		return
 	end
 
 	if CommanderDamaged(unitID, unitDefID, unitTeam, damage, paralyzer) then
@@ -480,7 +616,7 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer)
 	local unitDef = UnitDefs[unitDefID]
 	local techlevel = unitDef and unitDef.customParams and tonumber(unitDef.customParams.techlevel) or nil
 
-	if techlevel < dm_handle.techlevel then
+	if techlevel < dm_handle.techlevel and not unitOfInterest[unitDefID] then
 		return
 	end
 
@@ -492,6 +628,7 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer)
 	AddEvent({
 		message = "Unit under attack",
 		type = "bad",
+		duration = 10,
 		icon = iconPath,
 		unitid = unitID,
 		point = { x = x, z = z }
@@ -517,7 +654,7 @@ function widget:KeyPress(key, mods, isRepeat, label, unicode)
 			return true
 		end
 
-		-- go to the an idle constructor if any
+		-- go to an idle constructor if any
 		for unitID, _ in pairs(idleConstructors) do
 			x, y, z = spGetUnitPosition(unitID)
 			if x and y and z then -- unit is still alive
@@ -575,6 +712,23 @@ end
 function widget:UnitGiven(unitID, unitDefID, newTeam, oldTeam)
 	idleConstructors[unitID] = nil
 	unitDefIDCache[unitID] = nil
+
+	if newTeam ~= ourTeamID then
+		return
+	end
+
+	local unitDef = UnitDefs[unitDefID]
+	local iconType = unitDef and unitDef.iconType
+	local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
+	local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
+	local x, y, z = spGetUnitPosition(unitID)
+	AddEvent({
+		message = "New unit(s) acquired",
+		type = "good",
+		icon = iconPath,
+		unitid = unitID,
+		point = { x = x, z = z }
+	})
 end
 
 function widget:UnitTaken(unitID, unitDefID, oldTeam, newTeam)
