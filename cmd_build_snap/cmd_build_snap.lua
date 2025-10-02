@@ -1,4 +1,3 @@
-
 local widget = widget ---@type Widget
 
 -- Engine-provided globals: Spring, gl, GL, WG
@@ -15,7 +14,8 @@ UnitDefs = UnitDefs
 function widget:GetInfo()
     return {
         name = "Build Snap (all buildings)",
-        desc = "Snaps building placement to the nearest valid build grid point (within a small search radius). Hold Alt to temporarily disable.",
+        desc =
+        "Snaps building placement to the nearest valid build grid point (within a small search radius). Hold Alt to temporarily disable.",
         author = "uBdead (based on Extractor Snap patterns) by Hobo Joe, based on work by Niobium and Floris",
         date = "2025-08-31",
         license = "GNU GPL, v2 or later",
@@ -42,10 +42,10 @@ local spSetActiveCommand = Spring.SetActiveCommand
 -- Config
 --------------------------------------------------
 
-local GRID_STEP = 8              -- Spring build grid is in multiples of 8 map units
-local MAX_RADIUS_STEPS = 10      -- How far (in GRID_STEP steps) to search outward (80 elmos)
-local USE_SPIRAL = true          -- Spiral search vs simple snap-to-nearest
-local MIN_DIST_SNAP_SQ = 1       -- If already basically at snapped position, don't override
+local GRID_STEP          = 8 -- Spring build grid is in multiples of 8 map units
+local MAX_RADIUS_STEPS   = 10 -- How far (in GRID_STEP steps) to search outward (80 elmos)
+local USE_SPIRAL         = true -- Spiral search vs simple snap-to-nearest
+local MIN_DIST_SNAP_SQ   = 1 -- If already basically at snapped position, don't override
 
 --------------------------------------------------
 -- State
@@ -53,8 +53,8 @@ local MIN_DIST_SNAP_SQ = 1       -- If already basically at snapped position, do
 
 local activeCmdID
 local buildingDefID
-local cursorPos        -- current raw build-aligned cursor position (table{x,y,z})
-local snappedPos       -- snapped valid target position (table{x,y,z})
+local cursorPos  -- current raw build-aligned cursor position (table{x,y,z})
+local snappedPos -- snapped valid target position (table{x,y,z})
 local ghostShape
 local ghostActiveHandle
 local lastFacing
@@ -156,7 +156,11 @@ end
 -- Core Update Loop
 --------------------------------------------------
 
-function widget:Update()
+function widget:GameFrame(frame)
+    if frame % 5 ~= 3 then
+        return
+    end
+
     local _, cmdID = spGetActiveCommand()
     activeCmdID = cmdID
     if not cmdID or cmdID >= 0 then
@@ -182,11 +186,11 @@ function widget:Update()
 
     local facing = spGetBuildFacing()
     lastFacing = facing
-        local bx, by, bz = spPos2BuildPos(buildingDefID, worldPos[1], worldPos[2], worldPos[3])
+    local bx, by, bz = spPos2BuildPos(buildingDefID, worldPos[1], worldPos[2], worldPos[3])
     cursorPos = { x = bx, y = by, z = bz }
 
-    if alt or shift then
-        -- Snapping disabled while alt or shift held
+    if alt then
+        -- Snapping disabled while alt held
         snappedPos = nil
         WG.BuildSnap.position = nil
         if ghostActiveHandle then
@@ -225,7 +229,7 @@ function widget:Update()
                     WG.StopDrawUnitShapeGL4(ghostActiveHandle)
                     ghostActiveHandle = nil
                 end
-                ghostActiveHandle = WG.DrawUnitShapeGL4(ghostShape[1], ghostShape[2], ghostShape[3], ghostShape[4], ghostShape[5] * (math.pi/2), 0.66, ghostShape[6], 0.15, 0.3)
+                ghostActiveHandle = WG.DrawUnitShapeGL4(ghostShape[1], ghostShape[2], ghostShape[3], ghostShape[4], ghostShape[5] * (math.pi / 2), 0.66, ghostShape[6], 0.15, 0.3)
             end
         end
     else
@@ -241,7 +245,6 @@ end
 --------------------------------------------------
 -- Input
 --------------------------------------------------
-
 function widget:MousePress(x, y, button)
     if button ~= 1 then return end
     if not buildingDefID or not snappedPos then return end
@@ -270,10 +273,9 @@ end
 --------------------------------------------------
 -- Drawing
 --------------------------------------------------
-
-local function MakeLine(x1,y1,z1,x2,y2,z2)
-    gl.Vertex(x1,y1,z1)
-    gl.Vertex(x2,y2,z2)
+local function MakeLine(x1, y1, z1, x2, y2, z2)
+    gl.Vertex(x1, y1, z1)
+    gl.Vertex(x2, y2, z2)
 end
 
 function widget:DrawWorld()
@@ -295,5 +297,3 @@ end
 function widget:Shutdown()
     clear()
 end
-
-
