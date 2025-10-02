@@ -211,8 +211,20 @@ end
 local function checkIsReclaiming()
     for unitID, state in pairs(reclaimers) do
         local orders = spGetUnitCommands(unitID, 2)
+        -- check if the second order is negative, meaning we want to build something
+        if orders and #orders >= 2 then
+            if orders[2].id < 0 then
+                reclaimers[unitID].paused = false
+                reclaimers[unitID].reclaiming = false
+                reclaimers[unitID].metal = 0
+                reclaimers[unitID].energy = 0
+                reclaimers[unitID].type = nil
+                -- Spring.Echo("Lazy Reclaimers: Reclaimer", unitID, "is building something, resetting reclaim state")
+                return
+            end
+        end
 
-        if orders and #orders > 0 then
+        if orders and #orders >= 1 then
             local cmd = orders[1]
             if cmd.id == CMD.RECLAIM and cmd.params and (cmd.params[1] > Game.maxUnits or #cmd.params == 1) then
                 processReclaimOrder(unitID, cmd)
