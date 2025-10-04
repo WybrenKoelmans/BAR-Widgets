@@ -151,8 +151,8 @@ function widget:DrawScreen()
         local barRight = area[3]
         local barWidth = barRight - barLeft
         local leftMargin = barWidth * 0.25
-        -- Optionally, a tiny right margin (e.g. 2% of bar width) to avoid overlap
-        local rightMargin = barWidth * 0.02
+        -- Optionally, a tiny right margin (e.g. 3% of bar width) to avoid overlap
+        local rightMargin = barWidth * 0.03
         return barLeft + leftMargin + value * (barWidth - leftMargin - rightMargin)
     end
 
@@ -179,9 +179,9 @@ function widget:DrawScreen()
     local e_y = energyArea[2] + e_barHeight * 0.5
     -- Main balance now includes overflow
     font:Print(e_color .. short(e_total, 1), e_x, e_y, 24, "co")
-    -- Draw overflow at share slider knob position, 5% lower (still shown separately)
+    -- Draw overflow at share slider knob position, 10% lower (still shown separately)
     local e_slider_x = getShareSliderX(energyArea, share_energy)
-    local e_overflow_y = e_y - e_barHeight * 0.05
+    local e_overflow_y = e_y - e_barHeight * 0.10
     font:Print(e_overflow_color .. short(e_overflow, 1), e_slider_x, e_overflow_y, 18, "co")
 
     -- Metal Balance and Overflow (shared included in main balance)
@@ -205,7 +205,7 @@ function widget:DrawScreen()
     font:Print(m_color .. short(m_total, 1), m_x, m_y, 24, "co")
     -- Draw overflow at share slider knob position, 5% lower (still shown separately)
     local m_slider_x = getShareSliderX(metalArea, share_metal)
-    local m_overflow_y = m_y - m_barHeight * 0.05
+    local m_overflow_y = m_y - m_barHeight * 0.10
     font:Print(m_overflow_color .. short(m_overflow, 1), m_slider_x, m_overflow_y, 18, "co")
 
     font:End()
