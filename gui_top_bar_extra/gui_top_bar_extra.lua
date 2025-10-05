@@ -16,6 +16,7 @@ end
 -- Spring API
 local spGetMyTeamID = Spring.GetMyTeamID
 local spGetTeamResources = Spring.GetTeamResources
+local isSingle = true
 
 -- UI
 local font
@@ -60,6 +61,10 @@ function widget:Initialize()
     smoothed_energy_balance = 0
     smoothed_metal_overflow_balance = 0
     smoothed_energy_overflow_balance = 0
+
+    local myAllyTeamID = Spring.GetMyAllyTeamID()
+    local teamList = Spring.GetTeamList(myAllyTeamID) or {}
+    isSingle = #teamList == 1
 end
 
 function widget:Update(dt)
@@ -159,54 +164,41 @@ function widget:DrawScreen()
     font:Begin()
     font:SetOutlineColor(0,0,0,1)
 
-
-    -- Energy Balance and Overflow (shared included in main balance)
+    -- Always draw main balances
     local e_balance = smoothed_energy_balance
-    local e_overflow = smoothed_energy_overflow_balance
-    local e_total = e_balance
-    if e_overflow > 0 then
-        e_total = e_total + e_overflow
-    end
-    local e_color
-    if e_total >= 0 then
-        e_color = "\255\120\235\120" -- green
-    else
-        e_color = "\255\240\125\125" -- red
-    end
-    local e_overflow_color = "\255\255\230\80" -- yellow
+    local e_color = e_balance >= 0 and "\255\120\235\120" or "\255\240\125\125"
     local e_barHeight = energyArea[4] - energyArea[2]
     local e_x = energyArea[1] + e_barHeight / 2
     local e_y = energyArea[2] + e_barHeight * 0.5
-    -- Main balance now includes overflow
-    font:Print(e_color .. short(e_total, 1), e_x, e_y, 24, "co")
-    -- Draw overflow at share slider knob position, 10% lower (still shown separately)
-    local e_slider_x = getShareSliderX(energyArea, share_energy)
-    local e_overflow_y = e_y - e_barHeight * 0.10
-    font:Print(e_overflow_color .. short(e_overflow, 1), e_slider_x, e_overflow_y, 18, "co")
+    font:Print(e_color .. short(e_balance, 1), e_x, e_y, 24, "co")
 
-    -- Metal Balance and Overflow (shared included in main balance)
     local m_balance = smoothed_metal_balance
-    local m_overflow = smoothed_metal_overflow_balance
-    local m_total = m_balance
-    if m_overflow > 0 then
-        m_total = m_total + m_overflow
-    end
-    local m_color
-    if m_total >= 0 then
-        m_color = "\255\120\235\120" -- green
-    else
-        m_color = "\255\240\125\125" -- red
-    end
-    local m_overflow_color = "\255\120\180\255" -- blue
+    local m_color = m_balance >= 0 and "\255\120\235\120" or "\255\240\125\125"
     local m_barHeight = metalArea[4] - metalArea[2]
     local m_x = metalArea[1] + m_barHeight / 2
     local m_y = metalArea[2] + m_barHeight * 0.5
-    -- Main balance now includes overflow
-    font:Print(m_color .. short(m_total, 1), m_x, m_y, 24, "co")
-    -- Draw overflow at share slider knob position, 5% lower (still shown separately)
-    local m_slider_x = getShareSliderX(metalArea, share_metal)
-    local m_overflow_y = m_y - m_barHeight * 0.10
-    font:Print(m_overflow_color .. short(m_overflow, 1), m_slider_x, m_overflow_y, 18, "co")
+    font:Print(m_color .. short(m_balance, 1), m_x, m_y, 24, "co")
+
+    -- Only draw overflow/share if not isSingle
+    if not isSingle then
+        -- Energy Overflow
+        local e_overflow = smoothed_energy_overflow_balance
+        local e_total = e_balance
+        if e_overflow > 0 then
+            e_total = e_total + e_overflow
+        end
+        local e_overflow_color = "\255\255\230\80" -- yellow
+        local e_slider_x = getShareSliderX(energyArea, share_energy)
+        local e_overflow_y = e_y - e_barHeight * 0.10
+        font:Print(e_overflow_color .. short(e_overflow, 1), e_slider_x, e_overflow_y, 18, "co")
+
+        -- Metal Overflow
+        local m_overflow = smoothed_metal_overflow_balance
+        local m_overflow_color = "\255\120\180\255" -- blue
+        local m_slider_x = getShareSliderX(metalArea, share_metal)
+        local m_overflow_y = m_y - m_barHeight * 0.10
+        font:Print(m_overflow_color .. short(m_overflow, 1), m_slider_x, m_overflow_y, 18, "co")
+    end
 
     font:End()
 
