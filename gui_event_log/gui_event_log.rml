@@ -1,18 +1,19 @@
 <rml>
-
     <head>
         <title>Event Log</title>
         <link rel="stylesheet" href="gui_event_log.rcss" type="text/rcss" />
     </head>
-
     <body id="gui_event_log-widget" style="right: 10%; top: 10%;">
-        <div id="widget-container" data-model="gui_event_log_model" class="bg-black-semi-alpha">
+        <div id="widget-container" data-model="gui_event_log_model" data-style-font-size="fontsize + 'dp'">
             <handle move_target="#document">
-                <h4 class="text-white">Battle Log
-                    <button data-event-click="settechlevel(1)" data-class-on="techlevel == 1">T1</button>
-                    <button data-event-click="settechlevel(2)" data-class-on="techlevel <= 2">T2</button>
-                    <button data-event-click="settechlevel(3)" data-class-on="techlevel <= 3">T3</button>
-                </h4>
+                <div class="header">
+                    <div><h4 class="text-white" onclick="widget:ToggleDebugger()">Battle Log</h4></div>
+                    <div class="button-drawer">
+                        <button data-event-click="settechlevel(1)" data-class-on="techlevel == 1">T1</button>
+                        <button data-event-click="settechlevel(2)" data-class-on="techlevel <= 2">T2</button>
+                        <button data-event-click="settechlevel(3)" data-class-on="techlevel <= 3">T3</button>
+                    </div>
+                </div>
             </handle>
             <div class="events-container">
                 <div data-for="e : events" class="event" data-event-click="eventclick(it_index)"

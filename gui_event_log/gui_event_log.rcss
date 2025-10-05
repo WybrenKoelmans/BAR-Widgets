@@ -5,7 +5,7 @@
 * {
     box-sizing: border-box;
     font-family: "Exo 2";
-    font-size: 20px;
+    /* font-size: 20px; actually coming from a data-style-font-size now*/
 }
 
 body, div, p, hr, pre,
@@ -97,26 +97,41 @@ handle[move_target] {
 }
 
 #gui_event_log-widget {
-    min-width: 400dp;
+    width: 400dp;
 }
 
-#gui_event_log-widget h4 button {
+.header {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 75);
+    padding: 4dp 8dp;
+    border-radius: 8dp;
+}
+
+.header button {
     background-color: rgba(0, 0, 0, 128);
     cursor: pointer;
     padding: 2dp 6dp;
     border-radius: 4dp;
     margin-right: 4dp;
+    text-decoration: line-through;
 }
 
-#gui_event_log-widget h4 button.on {
+.header .button-drawer {
+    display: flex;
+    align-items: center;
+}
+
+.header button.on {
     background-color: rgba(128, 128, 128, 128);
+    text-decoration: none;
 }
 
-#gui_event_log-widget h4 button:hover {
+.header button:hover {
     background-color: rgba(255, 255, 255, 128);
 }
 
-#gui_event_log-widget h4 button:active {
+.header button:active {
     background-color: rgba(255, 255, 255, 192);
 }
 
@@ -124,7 +139,9 @@ handle[move_target] {
     display: flex;
     opacity: 1;
     padding: 8dp 12dp;
-    transition: opacity transform 0.5s quintic-in-out;
+    transition: opacity transform 0.25s quintic-in-out;
+    transform-origin: left center;
+    border-radius: 8dp;
 }
 
 .event:hover {

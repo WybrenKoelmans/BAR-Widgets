@@ -9,12 +9,12 @@ local icontypes = VFS.Include("gamedata/icontypes.lua")
 
 function widget:GetInfo()
 	return {
-		name = "BattleLog",
+		name = "Battle Log",
 		desc = "Displays important battle events in a log",
 		author = "uBdead",
 		date = "2025",
 		license = "GNU GPL, v2 or later",
-		layer = -1000000,
+		layer = 1,
 		enabled = true,
 	}
 end
@@ -87,33 +87,6 @@ local constructorDefIDs = {}
 local idleConstructors = {}
 local lastRemovalCheckFrame = 0
 
--- Update the list of idle constructor units
-local function updateList()
-	-- Clear dead units from cache efficiently
-	for unitID in pairs(idleConstructors) do
-		if spGetUnitIsDead(unitID) then
-			idleConstructors[unitID] = nil
-			unitDefIDCache[unitID] = nil
-		end
-	end
-
-	local allUnits = spGetAllUnits and spGetAllUnits() or {}
-
-	for _, unitID in ipairs(allUnits) do
-		local unitDefID = GetUnitDefID(unitID)
-		if unitDefID and constructorDefIDs[unitDefID] and spGetUnitTeam(unitID) == myTeamID then
-			if not spGetUnitIsDead(unitID) and not spGetUnitIsBeingBuilt(unitID) then
-				local queue = spGetUnitCommandCount(unitID) or 0
-				if queue == 0 then
-					idleConstructors[unitID] = true
-				else
-					idleConstructors[unitID] = nil
-				end
-			end
-		end
-	end
-end
-
 -- Commander under attack logic
 local isCommander = {}
 local commanderAlarmInterval = 10 -- seconds
@@ -129,6 +102,13 @@ local document
 local dm_handle
 
 local init_model
+
+local fontSize = 16                 -- default font size
+local maxEvents = 25                -- default maximum number of events
+local durationMultiplier = 1.0      -- default duration multiplier
+local groupingDistance = 2000       -- default grouping distance
+local sqrGroupingDistance = 4000000 -- default grouping distance (2000^2)
+local repeatWarnings = true         -- default: do not repeat warnings of same type
 local lastEventAdded
 
 local function click(index)
@@ -164,6 +144,7 @@ init_model = {
 	end,
 	currentFrame = 0,
 	techlevel = 1,
+	fontsize = fontSize,
 }
 
 local function AddEvent(event)
@@ -179,26 +160,31 @@ local function AddEvent(event)
 	if event.duration == nil then
 		event.duration = 60 -- seconds
 	end
-
-	lastEventAdded = event
+	-- Apply duration multiplier
+	event.duration = event.duration * durationMultiplier
 
 	-- Reverted optimization: check all events for deduplication
 	for i = 1, #init_model.events do
 		local existing_event = init_model.events[i]
 		if existing_event.message == event.message then
+			if repeatWarnings then
+				lastEventAdded = event
+			end
 			local withinDistance = true
 			if existing_event.point and event.point then
 				local dx = existing_event.point.x - event.point.x
 				local dz = existing_event.point.z - event.point.z
 				-- Use squared distance to avoid sqrt calculation
 				local dist2 = dx * dx + dz * dz
-				withinDistance = dist2 < 4000000 -- 2000^2
+				withinDistance = dist2 < sqrGroupingDistance
 			end
 
 			if withinDistance then
 				-- Update existing event
 				existing_event.multiplier = (existing_event.multiplier or 1) + 1
-				existing_event.frame = event.frame
+				if repeatWarnings then
+					existing_event.frame = event.frame
+				end
 				if event.point then
 					existing_event.point = event.point
 				end
@@ -208,18 +194,24 @@ local function AddEvent(event)
 				if event.icon then
 					existing_event.icon = event.icon
 				end
+				-- Update duration if the new event has a longer duration
+				if event.duration and (not existing_event.duration or event.duration > existing_event.duration) then
+					existing_event.duration = event.duration
+				end
 				dm_handle.events = init_model.events
 				return
 			end
 		end
 	end
 
+	lastEventAdded = event
 	table.insert(init_model.events, 1, event)
-	if #init_model.events > 25 then
+	if #init_model.events > maxEvents then
 		table.remove(init_model.events) -- Remove the oldest event
 	end
 	dm_handle.events = init_model.events
 end
+
 
 function widget:Initialize()
 	if widget:GetInfo().enabled == false then
@@ -246,6 +238,112 @@ function widget:Initialize()
 			unitOfInterest[v.name] = nil
 		end
 	end
+	Spring.Echo(WIDGET_NAME ..
+		": Identified " .. tostring(table.maxn(constructorDefIDs)) .. " constructor unit definitions.")
+
+	-- Register font size, max events, duration multiplier, grouping distance, and repeat warnings options with WG.options if available
+	if WG.options and WG.options.addOption then
+		WG.options.addOption({
+			widgetname = widget:GetInfo().name,
+			id = "eventlog_font_size",
+			group = "custom",
+			category = 2,
+			name = "Font Size",
+			type = "slider",
+			min = 10,
+			max = 30,
+			step = 1,
+			value = fontSize,
+			description = "Adjust the font size for the BattleLog event list.",
+			onchange = function(_, value)
+				Spring.Echo(WIDGET_NAME .. ": Font size changed to " .. tostring(value))
+				fontSize = tonumber(value)
+				if dm_handle then
+					dm_handle.fontsize = fontSize
+				end
+				if document and document.ReloadStyleSheet then
+					document:ReloadStyleSheet()
+				end
+			end
+		})
+		WG.options.addOption({
+			widgetname = widget:GetInfo().name,
+			id = "eventlog_max_events",
+			group = "custom",
+			category = 2,
+			name = "Maximum Events",
+			type = "slider",
+			min = 5,
+			max = 100,
+			step = 1,
+			value = maxEvents,
+			description = "Set the maximum number of events to display in the BattleLog.",
+			onchange = function(_, value)
+				Spring.Echo(WIDGET_NAME .. ": Max events changed to " .. tostring(value))
+				maxEvents = tonumber(value)
+				if dm_handle then
+					-- Optionally, update the model if you want to expose maxEvents to RML
+				end
+				-- Trim the event list if needed
+				while #init_model.events > maxEvents do
+					table.remove(init_model.events)
+				end
+				if dm_handle then
+					dm_handle.events = init_model.events
+				end
+			end
+		})
+		WG.options.addOption({
+			widgetname = widget:GetInfo().name,
+			id = "eventlog_duration_multiplier",
+			group = "custom",
+			category = 2,
+			name = "Duration Multiplier",
+			type = "slider",
+			min = 0.1,
+			max = 5.0,
+			step = 0.1,
+			value = durationMultiplier,
+			description = "Multiply the duration of all BattleLog events (e.g. 0.5 = half as long, 2.0 = twice as long).",
+			onchange = function(_, value)
+				Spring.Echo(WIDGET_NAME .. ": Duration multiplier changed to " .. tostring(value))
+				durationMultiplier = tonumber(value)
+			end
+		})
+		WG.options.addOption({
+			widgetname = widget:GetInfo().name,
+			id = "eventlog_grouping_distance",
+			group = "custom",
+			category = 2,
+			name = "Grouping Distance",
+			type = "slider",
+			min = 100,
+			max = 5000,
+			step = 50,
+			value = groupingDistance,
+			description =
+			"Distance (in game units) for grouping similar events (default: 2000). Lower = stricter grouping.",
+			onchange = function(_, value)
+				Spring.Echo(WIDGET_NAME .. ": Grouping distance changed to " .. tostring(value))
+				groupingDistance = tonumber(value)
+				sqrGroupingDistance = tonumber(value) * tonumber(value)
+			end
+		})
+		WG.options.addOption({
+			widgetname = widget:GetInfo().name,
+			id = "eventlog_repeat_warnings",
+			group = "custom",
+			category = 2,
+			name = "Repeat Warnings",
+			type = "bool",
+			value = repeatWarnings,
+			description = "If enabled, the same type of event will warn again even if it already exists in the log.",
+			onchange = function(_, value)
+				Spring.Echo(WIDGET_NAME .. ": Repeat warnings set to " .. tostring(value))
+				repeatWarnings = value and true or false
+			end
+		})
+	end
 
 	-- Get the shared RML context
 	widget.rmlContext = RmlUi.GetContext("shared")
@@ -255,6 +353,7 @@ function widget:Initialize()
 	end
 
 	-- Create and bind the data model
+	init_model.fontsize = fontSize
 	dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, init_model)
 	if not dm_handle then
 		spEcho(WIDGET_NAME .. ": ERROR - Failed to create data model")
@@ -271,14 +370,69 @@ function widget:Initialize()
 		return false
 	end
 
+	document:AddEventListener("dragend", function() widget:SavePosition() end)
+
 	-- Apply styles and show the document
 	document:ReloadStyleSheet()
 	document:Show()
+	widget:LoadPosition()
 	spEcho(WIDGET_NAME .. ": Widget initialized successfully")
 
+	spEcho(WIDGET_NAME .. ": Font size should be " .. tostring(fontSize) .. "dp now." .. " initial model fontsize: " .. tostring(init_model.fontsize) .. " dm_handle fontsize: " .. tostring(dm_handle.fontsize))
 	-- RmlUi.SetDebugContext('shared')
 
 	return true
+end
+
+local function AddIdleConstructorEvent(unitID, unitDefID)
+	local unitDef = UnitDefs[unitDefID]
+	local iconType = unitDef and unitDef.iconType
+	local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
+	local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
+	local x, y, z = spGetUnitPosition(unitID)
+	local techlevel = unitDef and unitDef.customParams and tonumber(unitDef.customParams.techlevel) or nil
+	if techlevel and techlevel < dm_handle.techlevel then
+		return
+	end
+	local prefix = ""
+	if techlevel and techlevel > 1 then
+		prefix = "T" .. techlevel .. " "
+	end
+	AddEvent({
+		message = prefix .. "Constructor idle",
+		type = "neutral",
+		icon = iconPath,
+		unitid = unitID,
+		point = { x = x, z = z }
+	})
+end
+
+local function updateList()
+	-- Clear dead units from cache efficiently
+	for unitID in pairs(idleConstructors) do
+		if spGetUnitIsDead(unitID) then
+			idleConstructors[unitID] = nil
+			unitDefIDCache[unitID] = nil
+		end
+	end
+
+	local allUnits = spGetAllUnits and spGetAllUnits() or {}
+	for _, unitID in ipairs(allUnits) do
+		local unitDefID = GetUnitDefID(unitID)
+		if unitDefID and constructorDefIDs[unitDefID] and spGetUnitTeam(unitID) == myTeamID then
+			if not spGetUnitIsDead(unitID) and not spGetUnitIsBeingBuilt(unitID) then
+				local queue = spGetUnitCommandCount(unitID) or 0
+				if queue == 0 then
+					if not idleConstructors[unitID] then
+						AddIdleConstructorEvent(unitID, unitDefID)
+					end
+					idleConstructors[unitID] = true
+				else
+					idleConstructors[unitID] = nil
+				end
+			end
+		end
+	end
 end
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID, reason, silent)
@@ -370,17 +524,17 @@ function widget:Reload()
 end
 
 function widget:ToggleDebugger()
-	if dm_handle then
-		dm_handle.debugMode = not dm_handle.debugMode
+	-- if dm_handle then
+	-- 	dm_handle.debugMode = not dm_handle.debugMode
 
-		if dm_handle.debugMode then
-			RmlUi.SetDebugContext('shared')
-			spEcho(WIDGET_NAME .. ": RmlUi debugger enabled")
-		else
-			RmlUi.SetDebugContext(nil)
-			spEcho(WIDGET_NAME .. ": RmlUi debugger disabled")
-		end
-	end
+	-- 	if dm_handle.debugMode then
+	-- 		RmlUi.SetDebugContext('shared')
+	-- 		spEcho(WIDGET_NAME .. ": RmlUi debugger enabled")
+	-- 	else
+	-- 		RmlUi.SetDebugContext(nil)
+	-- 		spEcho(WIDGET_NAME .. ": RmlUi debugger disabled")
+	-- 	end
+	-- end
 end
 
 function widget:GameStarted()
@@ -400,7 +554,6 @@ function widget:GameFrame(frame)
 
 	-- Periodically clean up old events
 	if frame - lastRemovalCheckFrame >= 150 then -- every 5 seconds at 30
-		local beforeEvents = #init_model.events
 		lastRemovalCheckFrame = frame
 		local currentTime = spGetGameFrame()
 		local i = 1
@@ -408,7 +561,7 @@ function widget:GameFrame(frame)
 			local event = init_model.events[i]
 			if event.frame and event.duration then
 				local ageInFrames = currentTime - event.frame
-				if ageInFrames > (event.duration * 30) then -- Convert duration from seconds to frames
+				if ageInFrames > (event.duration * 30) then -- duration is already multiplied
 					table.remove(init_model.events, i)
 				else
 					i = i + 1
@@ -418,9 +571,6 @@ function widget:GameFrame(frame)
 			end
 		end
 		dm_handle.events = init_model.events
-		local afterEvents = #init_model.events
-		Spring.Echo(WIDGET_NAME ..
-		": Removed " .. (beforeEvents - afterEvents) .. " old events, " .. afterEvents .. " remain.")
 	end
 end
 
@@ -434,7 +584,13 @@ function widget:StockpileChanged(unitID, unitDefID, unitTeam, weaponNum, oldCoun
 	end
 end
 
-function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam)
+function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam, weaponDefID)
+	if weaponDefID == -10 then return end -- ignore self-destructions
+	if weaponDefID == -12 then return end -- ignore reclaimed
+	if weaponDefID == -15 then return end -- ignore still under factory construction
+	if weaponDefID == -16 then return end -- ignore factory cancellation
+	if weaponDefID == -19 then return end -- ignore decayed
+
 	unitDefIDCache[unitID] = nil
 	if not spIsUnitAllied(unitID) then
 		if isCommander[unitDefID] then
@@ -668,40 +824,6 @@ function widget:KeyPress(key, mods, isRepeat, label, unicode)
 	end
 end
 
-function widget:UnitIdle(unitID, unitDefID, unitTeam)
-	if unitTeam ~= ourTeamID then
-		return
-	end
-
-	if constructorDefIDs[unitDefID] and spIsUnitAllied(unitID) then
-		local unitDef = UnitDefs[unitDefID]
-		local iconType = unitDef and unitDef.iconType
-		local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
-		local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
-		local x, y, z = spGetUnitPosition(unitID)
-		-- add the tech level
-		local techlevel = unitDef and unitDef.customParams and tonumber(unitDef.customParams.techlevel) or nil
-
-		if techlevel < dm_handle.techlevel then
-			return
-		end
-
-		local prefix = ""
-		if techlevel and techlevel > 1 then
-			prefix = "T" .. techlevel .. " "
-		end
-
-		AddEvent({
-			message = prefix .. "Constructor idle",
-			type = "neutral",
-			icon = iconPath,
-			unitid = unitID,
-			point = { x = x, z = z }
-		})
-		idleConstructors[unitID] = true
-	end
-end
-
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOptions, cmdTag)
 	-- Remove from idleConstructors if present (unit is no longer idle)
 	if idleConstructors[unitID] then
@@ -734,4 +856,66 @@ end
 function widget:UnitTaken(unitID, unitDefID, oldTeam, newTeam)
 	idleConstructors[unitID] = nil
 	unitDefIDCache[unitID] = nil
+end
+
+function widget:SavePosition()
+	if not document then return end
+	local element = document:GetElementById("gui_event_log-widget")
+	if not element then return end
+	local x = element.offset_left
+	local y = element.offset_top
+	if not x or not y then return end
+
+	local vsx, vsy = Spring.GetViewGeometry()
+	if not vsx or not vsy then return end
+	local relX = x / vsx
+	local relY = y / vsy
+	Spring.SetConfigInt("EventLog_RelativeX", math.floor(relX * 1000)) -- store as int to avoid precision issues
+	Spring.SetConfigInt("EventLog_RelativeY", math.floor(relY * 1000))
+end
+
+function widget:LoadPosition()
+	if not document then return end
+	local element = document:GetElementById("gui_event_log-widget")
+	if not element then return end
+	local relX = Spring.GetConfigInt("EventLog_RelativeX", -1)
+	local relY = Spring.GetConfigInt("EventLog_RelativeY", -1)
+	if relX == -1 or relY == -1 then return end
+	relX = relX / 1000
+	relY = relY / 1000
+	local vsx, vsy = Spring.GetViewGeometry()
+	if not vsx or not vsy then return end
+	local x = math.floor(relX * vsx)
+	local y = math.floor(relY * vsy)
+	element.style.position = "absolute"
+	element.style.left = x .. "px"
+	element.style.top = y .. "px"
+end
+
+-- Save widget state for persistence
+function widget:GetConfigData()
+	Spring.Echo(WIDGET_NAME .. ": Saving configuration data")
+	
+	return {
+		fontSize = fontSize,
+		maxEvents = maxEvents,
+		durationMultiplier = durationMultiplier,
+		groupingDistance = groupingDistance,
+		repeatWarnings = repeatWarnings,
+	}
+end
+
+-- Restore widget state from persistence
+function widget:SetConfigData(data)
+	Spring.Echo(WIDGET_NAME .. ": Restoring configuration data")
+	if type(data) == "table" then
+		if data.fontSize ~= nil then fontSize = data.fontSize end
+		if data.maxEvents ~= nil then maxEvents = data.maxEvents end
+		if data.durationMultiplier ~= nil then durationMultiplier = data.durationMultiplier end
+		if data.groupingDistance ~= nil then
+			groupingDistance = data.groupingDistance
+			sqrGroupingDistance = groupingDistance * groupingDistance
+		end
+		if data.repeatWarnings ~= nil then repeatWarnings = data.repeatWarnings end
+	end
 end
