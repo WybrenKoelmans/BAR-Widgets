@@ -566,7 +566,7 @@ function widget:Initialize()
             id = "coach_fontsize",
             group = "custom",
             category = 2,
-            name = "Coach Font Size",
+            name = "Font Size",
             type = "slider",
             min = fontSizeMin,
             max = fontSizeMax,

@@ -47,9 +47,6 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
     if builderID then
         local builderDefID = Spring.GetUnitDefID(builderID)
         if builderDefID and UnitDefs[builderDefID] and UnitDefs[builderDefID].canResurrect then
-            -- This unit was resurrected
-            Spring.Echo("Unit resurrected: " .. unitID .. " by ally: " .. unitTeam)
-
             -- Check if it's our team
             if unitTeam ~= myTeam then
                 return
@@ -58,7 +55,6 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
             -- If we resurrected a resurrection unit, let it guard the resurrector
             if UnitDefs[unitDefID].canResurrect then
                 Spring.GiveOrderToUnit(unitID, CMD.GUARD, {builderID}, {})
-                Spring.Echo("Resurrected unit is a resurrection unit, guarding the resurrector: " .. builderID)
                 return
             end
 
@@ -116,11 +112,11 @@ local function processUnit(unitID)
 
     -- If a closest ally was found, you can do something with it
     if closestAllyID then
-        Spring.Echo("Closest ally found: " .. closestAllyID .. " for resurrected unit: " .. unitID)
+        -- Spring.Echo("Closest ally found: " .. closestAllyID .. " for resurrected unit: " .. unitID)
         -- Give a GUARD command from the resurrected unit to the closest ally
         Spring.GiveOrderToUnit(unitID, CMD.GUARD, {closestAllyID}, {})
     else
-        Spring.Echo("No suitable ally found for resurrected unit: " .. unitID)
+        -- Spring.Echo("No suitable ally found for resurrected unit: " .. unitID)
     end
     -- Track this resurrected unit
     table.insert(resurrectedUnits, unitID)

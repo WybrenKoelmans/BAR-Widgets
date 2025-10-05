@@ -75,7 +75,7 @@ function widget:CommandNotify(cmdID, params, options)
   -- The cmdID is the unit being built
   local unitDefID = -cmdID
   if not blackListedForRepeat[unitDefID] then
-    Spring.Echo("Unit " .. name .. " normal.")
+    -- Spring.Echo("Unit " .. name .. " normal.")
     return false
   end
 
@@ -87,7 +87,7 @@ function widget:CommandNotify(cmdID, params, options)
 
   -- Do the command with ALT automatically
   options.alt = true -- Set alt to true in options
-  Spring.Echo("Unit " .. name .. " alt queued.")
+  -- Spring.Echo("Unit " .. name .. " alt queued.")
   for _, factoryID in ipairs(Spring.GetSelectedUnits()) do
     Spring.GiveOrderToUnit(factoryID, cmdID, params, options)
   end
