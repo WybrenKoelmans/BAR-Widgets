@@ -195,6 +195,11 @@ function widget:Initialize()
             rebuildableUnitDefIDs[unitDefID] = true
         end
     end
+
+    if WG and WG['gui_control_hints'] then
+        WG['gui_control_hints'].addHint(CMD_REPAIR, true, false, false, false, "CTRL+DRAG", "Rebuild area", true, true)
+        Spring.Echo("[Area Rebuild] Hint added to Control Hints")
+    end
 end
 
 function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam, weaponDefID)

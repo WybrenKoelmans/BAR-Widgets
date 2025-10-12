@@ -685,7 +685,7 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 			if unitOfInterest[unitDefID] and unitOfInterest[unitDefID].translatedHumanName then
 				message = unitOfInterest[unitDefID].translatedHumanName .. " Spotted"
 			end
-			AddEvent({ message = message, type = "neutral", icon = iconPath, point = { x = x, z = z } })
+			AddEvent({ message = message, type = "bad", icon = iconPath, point = { x = x, z = z } })
 		end
 
 		if not hasSeenT3 and techlevel and techlevel == 3 then
@@ -699,7 +699,7 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 				message = unitOfInterest[unitDefID].translatedHumanName .. " Spotted"
 			end
 
-			AddEvent({ message = message, type = "neutral", icon = iconPath, point = { x = x, z = z } })
+			AddEvent({ message = message, type = "terrible", icon = iconPath, point = { x = x, z = z } })
 		end
 
 		return

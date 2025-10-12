@@ -1,0 +1,35 @@
+* {
+    box-sizing: border-box;
+    font-family: "Source Code Pro";
+    font-size: 15px;
+    pointer-events: none;
+    color: rgba(255, 255, 255, 255);
+}
+
+#gui_control_hints_model-widget {
+    position: absolute;
+}
+
+.hint-table {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+}
+.hint-row {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 4px;
+    transition: opacity transform 0.25s quintic-in-out;
+    opacity: 0.6;
+}
+.hint-row.active {
+    opacity: 0.9;
+}
+
+.hint-label {
+    text-align: right;
+    margin-right: 4px;
+}
+
+.hint-value {
+}

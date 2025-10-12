@@ -1,0 +1,20 @@
+<rml>
+    <head>
+        <title>Controls Hints Widget</title>
+        <link rel="stylesheet" href="gui_control_hints.rcss" type="text/rcss" />
+    </head>
+    <body id="gui_control_hints_model-widget">
+        <div id="widget-container" data-model="gui_control_hints_model">
+            <!-- <h1>{{debug}}</h1> -->
+            <div class="hint-table" data-if="show">
+                <div data-for="h : hints" 
+                    class="hint-row" 
+                    data-if="(h.cmdID == cmdID || (cmdID < 0 && h.cmdID < 0)) && (h.constructor == -1 || h.constructor == constructor) && (h.moveable == -1 || h.moveable == moveable) && (h.paralyser == -1 || h.paralyser == paralyser)" 
+                    data-class-active="h.ctrl == ctrl && h.alt == alt && h.meta == meta && h.shift == shift && (h.target == -1 || h.target == target)">
+                        <div class="hint-label">[{{h.label}}]</div>
+                        <div class="hint-value">{{h.value}}</div>
+                </div>
+            </div>
+        </div>
+    </body>
+</rml>
