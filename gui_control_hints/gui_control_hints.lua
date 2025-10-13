@@ -103,8 +103,9 @@ local function addHints()
     addHint(0, false, false, true, false, "SPACE+X", "Explosion radius", false)
     --[[ CONSTRUCTION ]]
     addHint(-1, false, false, false, true, "SHIFT+DRAG", "Line")
+    addHint(-1, true, false, false, true, "CTRL+SHIFT+DRAG", "Line (straight)", nil, nil, nil, false)
     addHint(-1, false, true, false, true, "SHIFT+ALT+DRAG", "Grid")
-    addHint(-1, true, true, false, true, "CTRL+ALT+SHIFT", "Surround")
+    addHint(-1, true, false, false, true, "CTRL+SHIFT+TARGET", "Surround", nil, nil, nil, true)
     addHint(-1, false, false, true, true, "SHIFT+SPACE+DRAG", "Split")
     addHint(-1, false, true, false, true, "SHIFT+ALT+Z/X", "Spacing")
     addHint(-1, false, false, true, false, "SPACE", "Explosion radius")
@@ -113,15 +114,15 @@ local function addHints()
     addHint(CMD_RECLAIM, true, false, false, false, "CTRL+DRAG", "Area (metal first)", nil, nil, nil, false)
     addHint(CMD_RECLAIM, true, false, false, false, "CTRL+TARGET+DRAG", "Targets", nil, nil, nil, true)
     -- addHint(CMD_RECLAIM, true, false, true, false, "CTRL+SPACE+ENEMY+DRAG", "Enemies", nil, nil, nil, true)
-    addHint(CMD_RECLAIM, false, true, false, false, "ALT+DRAG", "Area (keep)", nil, nil, nil, false)
+    addHint(CMD_RECLAIM, false, true, false, false, "ALT+DRAG", "Area (forever)", nil, nil, nil, false)
     addHint(CMD_RECLAIM, false, true, false, false, "ALT+TARGET+DRAG", "Targets of type", nil, nil, nil, true)
     --[[ RESURRECT ]]
     addHint(CMD_RESURRECT, false, false, false, false, "DRAG", "Area")
-    addHint(CMD_RESURRECT, false, true, false, false, "ALT+DRAG", "Area (keep)")
+    addHint(CMD_RESURRECT, false, true, false, false, "ALT+DRAG", "Area (forever)")
     -- addHint(CMD_RESURRECT, false, false, false, false, "SPACE+DRAG", "Area (keep, fresh only)") --????
     --[[ REPAIR ]]
     addHint(CMD_REPAIR, false, false, false, false, "DRAG", "Area")
-    addHint(CMD_REPAIR, false, true, false, false, "ALT+DRAG", "Area (keep)")
+    addHint(CMD_REPAIR, false, true, false, false, "ALT+DRAG", "Area (forever)")
     -- addHint(CMD_REPAIR, false, false, true, false, "SPACE+DRAG", "Area (no assist)") --????
     --[[ ATTACK ]]
     addHint(CMD_ATTACK, false, false, false, false, "DRAG", "Area")
@@ -136,11 +137,15 @@ local function addHints()
     --[[ SET TARGET ]]
     addHint(GameCMD.UNIT_SET_TARGET, false, false, false, false, "DRAG", "Area")
     addHint(GameCMD.UNIT_SET_TARGET, false, false, false, false, "CTRL+S", "Cancel existing")
+    addHint(GameCMD.UNIT_SET_TARGET, false, true, false, false, "ALT+TARGET", "Priority target type", nil, nil, nil, true)
+    addHint(GameCMD.UNIT_SET_TARGET, false, true, false, false, "ALT+TARGET+DRAG", "Set target type", nil, nil, nil, true)
     --[[ MOVE ]]
     addHint(0, false, true, false, false, "ALT", "Form Front", true, false)
     addHint(0, true, false, false, false, "CTRL", "Formation", true, false)
     --[[ PATROL ]]
     addHint(CMD_PATROL, true, false, false, false, "CTRL", "Formation")
+    addHint(CMD_PATROL, false, false, false, false, "NORMAL", "Reclaim", true, true)
+    addHint(CMD_PATROL, false, true, false, false, "ALT", "Resurrect (first)", true, true)
     --[[ FIGHT (combat)]]
     addHint(CMD_FIGHT, true, false, false, false, "CTRL", "Formation", false, false)
     addHint(CMD_FIGHT, true, false, false, false, "CTRL+DRAG", "Formation + Front", false, false)
