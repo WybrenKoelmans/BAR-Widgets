@@ -1,0 +1,82 @@
+<rml>
+
+    <head>
+        <title>uBdev Tools</title>
+        <link rel="stylesheet" href="gui_ubdev.rcss" type="text/rcss" />
+    </head>
+
+    <body id="gui_ubdev-widget">
+        <div id="widget-container" data-model="gui_ubdev_model" class="panel">
+            <!-- Small floating debug buttons -->
+            <!-- <div class="debug-controls">
+                <button onclick="widget:Reload()" title="Reload Widget">r</button>
+                <button onclick="widget:ToggleDebugger()" title="Toggle Debugger">d</button>
+            </div> -->
+            <div class="navbar">
+                <handle move_target="#document">
+                    <h1 class="text-white">uBdev</h1>
+                </handle>
+                <button data-event-click="page = 'modes'" data-class-selected="page == 'modes'">modes</button>
+                <button data-event-click="page = 'give'" data-class-selected="page == 'give'">/give</button>
+            </div>
+            <div class="content modes" data-if="page == 'modes'">
+                <div class="grid">
+                    <button onclick="widget:SendCommand('cheat')">cheat</button>
+                    <button onclick="widget:SendCommand('globallos')">global los</button>
+                    <button onclick="widget:SendCommand('godmode')">godmode</button>
+                    <button onclick="widget:SendCommand('nocost')">nocost</button>
+                    <button onclick="widget:SendCommand('atm')">atm</button>
+                    <button class="danger" onclick="widget:SendCommand('option restart')">restart</button>
+                    <button onclick="widget:PauseAI()">toggle AI</button>
+                    <select data-value="selectedTeamID" data-event-change="updateTeam()">
+                        <option data-for="t : teams" data-value="t.id">{{t.name}}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="content give" data-if="page == 'give'">
+                <div class="spread">
+                    <div class="control">
+                        <input type="text" placeholder="Filter units..." data-value="unitsFilterText"
+                            data-event-change="filterUnits(unitsFilterText)" />
+                        <button data-event-click="unitsFilterText = ''; unitsFilterTechLevel=0; unitsFilterFaction=''; unitsFilterIsMobile=-1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)">x</button>
+                    </div>
+                    <div>
+                        <button onclick="widget:SendCommand('remove')">remove selected</button>
+                    </div>
+                </div>
+                <div class="spread" style="margin-top: 10dp;">
+                    <div>
+                        <button data-event-click="unitsFilterTechLevel = 1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterTechLevel==1">T1</button>
+                        <button data-event-click="unitsFilterTechLevel = 2; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterTechLevel==2">T2</button>
+                        <button data-event-click="unitsFilterTechLevel = 3; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterTechLevel==3">T3</button>
+                    </div>
+                    <div>
+                        <button data-event-click="unitsFilterIsMobile = 0; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterIsMobile==0">B</button>
+                        <button data-event-click="unitsFilterIsMobile = 1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterIsMobile==1">U</button>
+                    </div>
+                    <div>
+                        <button data-event-click="unitsFilterFaction = 'arm'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='arm'">A</button>
+                        <button data-event-click="unitsFilterFaction = 'cor'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='cor'">C</button>
+                        <button data-event-click="unitsFilterFaction = 'leg'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='leg'">L</button>
+                    </div>
+                </div>
+                <div class="scrollable">
+                    <div class="grid units-grid">
+                        <button data-repeat data-event-click="selectUnit(unit.name)" data-for="unit : favorites"
+                            data-class-selected="selectedUnit == unit.name" data-if="unitsFilterText==''">
+                            <img data-attr-src="unit.imgPath" alt="{{unit.humanName}}" />
+                            <img class="group-icon" data-attr-src="'/LuaUI/Images/groupicons/' + unit.group + '.png'" />
+                            {{unit.humanName}} <span class="unit-name">{{unit.name}}</span>
+                        </button>
+                        <button data-repeat data-event-click="selectUnit(unit.name)" data-for="unit : units"
+                            data-class-selected="selectedUnit == unit.name">
+                            <img data-attr-src="unit.imgPath" alt="{{unit.humanName}}" />
+                            <img class="group-icon" data-attr-src="'/LuaUI/Images/groupicons/' + unit.group + '.png'" />
+                            {{unit.humanName}} <span class="unit-name">{{unit.name}}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</rml>

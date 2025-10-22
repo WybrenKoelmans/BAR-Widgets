@@ -450,7 +450,7 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID, reason, sile
 	local name = unitDef.translatedHumanName or unitDef.name or "Factory"
 	local iconType = unitDef and unitDef.iconType
 	local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
-	local iconPath = iconName and ("/" .. iconName) or "/icons/empty.png"
+	local iconPath = iconName and ("/" .. iconName) or "/icons/blank.png"
 	local x, y, z = spGetUnitPosition(unitID)
 
 	local event = {

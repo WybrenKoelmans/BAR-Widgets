@@ -1,0 +1,333 @@
+/*
+* Default styles for all the basic elements.
+*/
+
+* {
+    box-sizing: border-box;
+    font-family: "Exo 2";
+    /* font-size: 20px; actually coming from a data-style-font-size now*/
+}
+
+body,
+div,
+p,
+hr,
+pre,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+tabset tabs {
+    display: block;
+}
+
+h1 {
+    font-size: 2em;
+    margin: .5em 0;
+}
+
+h2 {
+    font-size: 1.5em;
+    margin: .5em 0;
+}
+
+h3 {
+    font-size: 1.17em;
+    margin: .5em 0;
+}
+
+h4 {
+    margin: .5em 0;
+}
+
+h5 {
+    font-size: .83em;
+    margin: .25em 0;
+}
+
+h6 {
+    font-size: .75em;
+    margin: .25em 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+strong {
+    font-weight: bold;
+}
+
+em {
+    font-style: italic;
+}
+
+pre {
+    white-space: pre;
+}
+
+hr {
+    border-width: 1px;
+}
+
+table {
+    box-sizing: border-box;
+    display: table;
+}
+
+tr {
+    box-sizing: border-box;
+    display: table-row;
+}
+
+td {
+    box-sizing: border-box;
+    display: table-cell;
+}
+
+col {
+    box-sizing: border-box;
+    display: table-column;
+}
+
+colgroup {
+    display: table-column-group;
+}
+
+thead,
+tbody,
+tfoot {
+    display: table-row-group;
+}
+
+handle[size_target] {
+    cursor: nwse-resize;
+}
+
+handle[move_target] {
+    cursor: move;
+}
+
+scrollbarvertical {
+    position: relative;
+    width: 8dp;
+}
+
+scrollbarvertical slidertrack {
+    background: #333;
+}
+
+scrollbarvertical sliderbar {
+    background: #2e6b1b80;
+    border-radius: 4dp;
+}
+
+.debug-controls {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+#gui_ubdev-widget {
+    width: 400dp;
+}
+
+.panel {
+    border-radius: 5dp;
+    background-color: rgba(0, 0, 0, 150);
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    /* justify-content: space-between; */
+    background: rgba(0, 0, 0, 150);
+    padding: 0dp 12dp;
+    border-radius: 8dp 8dp 0dp 0dp;
+}
+
+.navbar button {
+    margin-left: 8dp;
+    margin-top: 10dp;
+    height: 32dp;
+    display: block;
+    border-radius: 4dp 4dp 0dp 0dp;
+}
+
+.navbar button.selected {
+    background: rgba(40, 49, 35, 225);
+}
+
+.content {
+    border-top: 3dp rgba(40, 49, 35, 225);
+    padding: 12dp;
+}
+
+.grid {
+    display: flex;
+    gap: 8dp;
+    flex-wrap: wrap;
+}
+
+button {
+    padding: 6dp 12dp;
+    border-radius: 4dp;
+    background: #333333;
+    color: white;
+    font-size: 14dp;
+    cursor: pointer;
+
+    transition: background 0.1s;
+}
+
+button:hover {
+    background: rgba(50, 50, 50, 220);
+}
+
+button:active {
+    background: rgba(100, 100, 100, 220);
+}
+
+button.selected {
+    background: #283123;
+}
+
+select {
+    padding: 6px 8px;
+    border-radius: 4px;
+    background-color: #222;
+    color: white;
+    font-size: 14dp;
+    width: 150dp;
+}
+
+button.danger {
+    background-color: #3d0808;
+}
+
+selectbox {
+    background-color: #222;
+    color: white;
+}
+
+selectarrow {
+    width: 16dp;
+    height: 16dp;
+    /* decorator: image( selectarrow ); */
+}
+
+option {
+    padding: 2dp 6dp;
+    background-color: #222;
+    color: white;
+}
+
+input[type="text"] {
+    padding: 6px 8px;
+    border-radius: 4px;
+    background-color: #222;
+    color: white;
+    font-size: 14dp;
+    width: 150dp;
+}
+
+input[type="range"] {
+    width: 100px;
+    height: 20px;
+    margin: 8px 0;
+    background-color: #222;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: #444;
+}
+
+input[type="range"] sliderbar {
+    position: relative;
+    top: -2dp;
+    width: 12px;
+    height: 24px;
+    background: #4caf50;
+    border-width: 2px;
+    border-color: #333;
+}
+
+input[type="range"] sliderbar:hover {
+    background: #81c784;
+}
+
+input[type="range"] sliderprogress {
+    background: #4caf50;
+    height: 8px;
+    border-radius: 4px;
+}
+
+.spread {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.spread button {
+    margin-right: 4dp;
+}
+
+.range-value {
+    font-size: 14dp;
+    color: white;
+}
+
+.control {
+    display: flex;
+    align-items: center;
+    gap: 4dp;
+}
+
+.scrollable {
+    width: 100%;
+    height: 100%;
+    max-height: 400dp;
+    overflow-y: auto;
+    margin-top: 8dp;
+}
+
+.scrollable .grid button {
+    display: block;
+}
+
+.units-grid {
+    margin-top: 8dp;
+}
+
+.units-grid button {
+    width: 80dp;
+    height: 80dp;
+    position: relative;
+    overflow: hidden;
+}
+
+.units-grid img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0.2;
+    width: 100%;
+    height: 100%;
+}
+
+.units-grid img.group-icon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 24dp;
+    height: 24dp;
+    opacity: 0.8;
+} 
+
+.unit-name {
+    font-size: 10dp;
+    opacity: 0.7;
+}
