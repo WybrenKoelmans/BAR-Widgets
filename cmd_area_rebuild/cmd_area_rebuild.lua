@@ -347,7 +347,7 @@ end
 
 local function cleanOld(frame)
     for unitID, data in pairs(destroyedBuildings) do
-        if frame - data.frame > 3000 then
+        if frame - data.frame > 9000 then -- 5 minutes
             destroyedBuildings[unitID] = nil
             if ghosts[unitID] then
                 WG.StopDrawUnitShapeGL4(ghosts[unitID])
