@@ -357,7 +357,6 @@ function doChecks()
 
     if energyCurrent < 100 then
         local _, _, _, windStrength = Spring.GetWind()
-        -- Spring.Echo("Current wind strength: " .. windStrength)
         if windStrength > 6 then
             AddTodo("Build a Wind Turbine", 5,
                 "You are energy stalling! Pause all other construction (including factories) and focus on energy production.")
@@ -376,10 +375,10 @@ function doChecks()
     if (averageWind and averageWind > 6) then
         if (metalExtractors < math.min(2, metalNearStart)) then
             AddTodo("Build " .. (math.min(2, metalNearStart) - metalExtractors) .. " more Metal Extractors", 10,
-                "They generate the slowest, so you need them early.")
+                "They generate resources the slowest, so you need them early.")
         elseif (energyIncomeAverage < 14 + 25 and energyCurrent < 500) then
             AddTodo("Build a Wind Turbine", 10,
-                "You need to have sufficient energy production to create the next Metal Extractor and your Factory.")
+                "You need sufficient energy production to build the next Metal Extractor and your Factory.")
         elseif metalExtractors < metalNearStart then
             AddTodo("Build " .. (metalNearStart - metalExtractors) .. " more Metal Extractors", 10,
                 "Gaining early metal is crucial for your economy.")
@@ -391,7 +390,7 @@ function doChecks()
         -- low winds on this map, better to build solar panels
         if (metalExtractors < math.min(3, metalNearStart)) then
             AddTodo("Build " .. (math.min(3, metalNearStart) - metalExtractors) .. " more Metal Extractors", 10,
-                "They generate the slowest, so you need them early.")
+                "They generate resources the slowest, so you need them early.")
         end
     end
 
@@ -405,18 +404,18 @@ function doChecks()
             AddTodo(buildingCandidate.text, buildingCandidate.priority, buildingCandidate.subtext)
         else
             AddTodo("Commander is idle", 90,
-                "You should give it some orders to build, assist or reclaim, or move it tactically.")
+                "You should give it orders to build, assist, reclaim, or move it tactically.")
         end
     end
 
     if constructorsIdle > 0 then
         AddTodo("Constructor is idle", 99 - constructorsIdle * 5,
-            "You should give it some orders to build, assist or reclaim.")
+            "You should give it orders to build, assist, or reclaim.")
     end
 
     if factoryIdle then
         AddTodo("Factory is idle", 90,
-            "You should give it some orders to build units, or assign a constructor to assist it.")
+            "You should give it orders to build units or assign a constructor to assist it.")
     end
 
     if pausedFactory and metalPercentage > 0.5 and energyPercentage > 0.5 then
@@ -424,8 +423,6 @@ function doChecks()
             "You should unpause it to continue producing units.")
     end
 
-
-    -- Spring.Echo("CBots: " .. cbots .. ", Factories: " .. factories)
     local armyToEcoRatio = getArmyToEcoRatio()
 
     if factories < 1 then
@@ -446,26 +443,23 @@ function doChecks()
         local buildPowerMetalRatio = buildPower / (metalIncome + 1)   -- avoid division by zero
         local buildPowerEnergyRatio = buildPower / (energyIncomeAverage + 1) -- avoid division by zero
 
-        -- Spring.Echo("Build Power Metal Ratio: " .. buildPowerMetalRatio)
-        -- Spring.Echo("Build Power Energy Ratio: " .. buildPowerEnergyRatio)
-
         if (energyPercentage > 0.95 and metalPercentage > 0.5 and buildPowerMetalRatio < 30) or buildPowerMetalRatio < 40 and buildPowerEnergyRatio < 1 then
             AddTodo("Add Build Power", 70,
                 "Build Constructors to add build power to keep scaling your economy.")
         end
         if (energyIncomeAverage / (energyStorage + 1) > 0.5) then
             AddTodo("Build an Energy Storage", 99,
-                "You have low energy storage, consider building an Energy Storage to store excess energy.")
+                "You have low energy storage. Consider building an Energy Storage to store excess energy.")
         else
             AddTodo("Build more Energy", 99,
-                "You have enough metal production, but not enough energy production. Consider building more Energy Plants.")
+                "You have enough metal production but not enough energy production. Consider building more Energy Plants.")
         end
 
         if armyToEcoRatio > 2 then
-            AddTodo("Pause Factories: Your army is very large compared to your economy", 50,
+            AddTodo("Pause Factories: Your army is much larger than your economy.", 50,
                 "Divert build power from factories to economy construction.")
         elseif armyToEcoRatio > 1.5 then
-            AddTodo("Redirect Factory Build Power to Economy", 60,
+            AddTodo("Redirect Factory Build Power to the Economy.", 60,
                 "Your army is outpacing your economy.")
         end
     else
@@ -482,7 +476,7 @@ function doChecks()
     -- if we are wasting metal, we should invest assist Factories or build a big project
     if metalPercentage > 0.25 and energyPercentage > 0.75 then
         AddTodo("Spend more Build Power", 10,
-            "You have excess metal and energy, build more expensive units, or add construct more Build Power.")
+            "You have excess metal and energy. Build more expensive units or add more Build Power.")
     end
 end
 
@@ -587,7 +581,7 @@ function getCommanderBuildingCandidate()
             text = "Build a Radar",
             priority = 80,
             subtext =
-            "You have no radars, consider building one for better map awareness."
+            "You have no radars. Consider building one for better map awareness."
         }
     end
     if turrets < 3 then
@@ -595,7 +589,7 @@ function getCommanderBuildingCandidate()
             text = "Build a turret",
             priority = 80,
             subtext =
-            "You have few turrets, consider building one for defense."
+            "You have few turrets. Consider building one for defense."
         }
     end
     return nil
