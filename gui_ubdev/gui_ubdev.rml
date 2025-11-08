@@ -31,6 +31,7 @@
                     <select data-value="selectedTeamID" data-event-change="updateTeam()">
                         <option data-for="t : teams" data-value="t.id">{{t.name}}</option>
                     </select>
+                    <button class="danger" onclick="widget:SendCommand('spectator')">spectator</button>
                 </div>
             </div>
             <div class="content give" data-if="page == 'give'">
@@ -41,7 +42,15 @@
                         <button data-event-click="unitsFilterText = ''; unitsFilterTechLevel=0; unitsFilterFaction=''; unitsFilterIsMobile=-1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)">x</button>
                     </div>
                     <div>
-                        <button onclick="widget:SendCommand('remove')">remove selected</button>
+                        <button onclick="widget:SendCommand('luarules destroyunits')">
+                            <img src="/icons/skull.png" alt="Remove all units" />
+                        </button>
+                        <button onclick="widget:SendCommand('luarules wreckunits')">
+                            <img src="/icons/bot_t1_tinyworker.png" alt="Wreck all units" />
+                        </button>
+                        <button onclick="widget:SendCommand('remove')">
+                            <img src="/icons/mine.png" alt="Remove all units" />
+                        </button>
                     </div>
                 </div>
                 <div class="spread" style="margin-top: 10dp;">
@@ -51,13 +60,23 @@
                         <button data-event-click="unitsFilterTechLevel = 3; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterTechLevel==3">T3</button>
                     </div>
                     <div>
-                        <button data-event-click="unitsFilterIsMobile = 0; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterIsMobile==0">B</button>
-                        <button data-event-click="unitsFilterIsMobile = 1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterIsMobile==1">U</button>
+                        <button data-event-click="unitsFilterIsMobile = 1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterIsMobile==1">
+                            <img src="/icons/armcom.png" alt="" />                            
+                        </button>
+                        <button data-event-click="unitsFilterIsMobile = 0; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterIsMobile==0">
+                            <img src="/icons/factory_bot.png" alt="" />
+                        </button>
                     </div>
                     <div>
-                        <button data-event-click="unitsFilterFaction = 'arm'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='arm'">A</button>
-                        <button data-event-click="unitsFilterFaction = 'cor'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='cor'">C</button>
-                        <button data-event-click="unitsFilterFaction = 'leg'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='leg'">L</button>
+                        <button data-event-click="unitsFilterFaction = 'arm'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='arm'">
+                            <img src="/luaui/images/advplayerslist/armada_default.png" alt="Armada" />
+                        </button>
+                        <button data-event-click="unitsFilterFaction = 'cor'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='cor'">
+                            <img src="/luaui/images/advplayerslist/cortex_default.png" alt="Cortex" />
+                        </button>
+                        <button data-event-click="unitsFilterFaction = 'leg'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='leg'">
+                            <img src="/luaui/images/advplayerslist/legion_default.png" alt="Legion" />
+                        </button>
                     </div>
                 </div>
                 <div class="scrollable">
@@ -66,13 +85,13 @@
                             data-class-selected="selectedUnit == unit.name" data-if="unitsFilterText==''">
                             <img data-attr-src="unit.imgPath" alt="{{unit.humanName}}" />
                             <img class="group-icon" data-attr-src="'/LuaUI/Images/groupicons/' + unit.group + '.png'" />
-                            {{unit.humanName}} <span class="unit-name">{{unit.name}}</span>
+                            <div>{{unit.humanName}} <span class="unit-name">{{unit.name}}</span></div>
                         </button>
                         <button data-repeat data-event-click="selectUnit(unit.name)" data-for="unit : units"
                             data-class-selected="selectedUnit == unit.name">
                             <img data-attr-src="unit.imgPath" alt="{{unit.humanName}}" />
                             <img class="group-icon" data-attr-src="'/LuaUI/Images/groupicons/' + unit.group + '.png'" />
-                            {{unit.humanName}} <span class="unit-name">{{unit.name}}</span>
+                            <div>{{unit.humanName}} <span class="unit-name">{{unit.name}}</span></div>
                         </button>
                     </div>
                 </div>

@@ -81,9 +81,17 @@ local nameToDefID = {}
 
 local allUnits = {}
 for _, unitDef in ipairs(UnitDefs) do
-    local iconType = unitDef and unitDef.iconType
-    local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
-    local iconPath = iconName and ("/" .. iconName) or "/icons/inverted/blank.png"
+    local iconPath = "unitpics/" .. unitDef.name .. ".dds"
+
+    -- check if the file exists
+    if not VFS.FileExists(iconPath) then
+        local iconType = unitDef and unitDef.iconType
+        local iconName = iconType and icontypes[iconType] and icontypes[iconType].bitmap
+        iconPath = iconName and ("/" .. iconName) or "/icons/inverted/blank.png"
+    else
+        iconPath = "/" .. iconPath
+    end
+
     local group = unitDef.customParams and unitDef.customParams.unitgroup or 'weaponexplo'
     if group == 'explo' then -- who the f knows
         group = 'weaponexplo'
