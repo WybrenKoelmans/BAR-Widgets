@@ -154,8 +154,6 @@ end
 -- Initial data model
 local init_model = {
     debugMode = false,
-    page = 'give',
-    giveAmount = 1,
     units = allUnits,
     selectedUnit = '',
     unitsFilterText = '',
@@ -220,7 +218,7 @@ function widget:MousePress(x, y, button)
         return false
     end
 
-    if dm_handle.selectedUnit == '' or dm_handle.page ~= 'give' then
+    if dm_handle.selectedUnit == '' then
         dm_handle.selectedUnit = ''
         clearDrawHandles()
 
@@ -233,9 +231,18 @@ function widget:MousePress(x, y, button)
     end
     local wx, wy, wz = pos[1], pos[2], pos[3]
 
+    local alt, ctrl, meta, shift = Spring.GetModKeyState()
+
+    local amount = 1
+    if ctrl then
+        amount = amount * 5
+    end
+    if shift then
+        amount = amount * 10
+    end
+
     if wx and wy and wz then
-        spSendCommands("give " ..
-            dm_handle.giveAmount .. " " .. dm_handle.selectedUnit .. " " .. dm_handle.selectedTeamID)
+        spSendCommands("give " .. amount .. " " .. dm_handle.selectedUnit .. " " .. dm_handle.selectedTeamID)
         return true
     end
 end

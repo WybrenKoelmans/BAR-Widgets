@@ -8,24 +8,24 @@
     <body id="gui_ubdev-widget">
         <div id="widget-container" data-model="gui_ubdev_model" class="panel">
             <!-- Small floating debug buttons -->
-            <!-- <div class="debug-controls">
+            <div class="debug-controls">
                 <button onclick="widget:Reload()" title="Reload Widget">r</button>
                 <button onclick="widget:ToggleDebugger()" title="Toggle Debugger">d</button>
-            </div> -->
-            <div class="navbar">
-                <handle move_target="#document">
-                    <h1 class="text-white">uBdev</h1>
-                </handle>
-                <button data-event-click="page = 'modes'" data-class-selected="page == 'modes'">modes</button>
-                <button data-event-click="page = 'give'" data-class-selected="page == 'give'">/give</button>
             </div>
-            <div class="content modes" data-if="page == 'modes'">
+            <handle move_target="#document">
+                <div class="navbar">
+                    <h1 class="text-white">uBdev</h1>
+                </div>
+            </handle>
+            <div class="content give">
                 <div class="grid">
                     <button onclick="widget:SendCommand('cheat')">cheat</button>
                     <button onclick="widget:SendCommand('globallos')">global los</button>
                     <button onclick="widget:SendCommand('godmode')">godmode</button>
                     <button onclick="widget:SendCommand('nocost')">nocost</button>
                     <button onclick="widget:SendCommand('atm')">atm</button>
+                    <button onclick="widget:SendCommand('luarules clearWrecks')">no wrecks</button>
+                    <button onclick="widget:SendCommand('luarules loadmissiles')">missiles</button>
                     <button class="danger" onclick="widget:SendCommand('option restart')">restart</button>
                     <button onclick="widget:PauseAI()">toggle AI</button>
                     <select data-value="selectedTeamID" data-event-change="updateTeam()">
@@ -33,13 +33,12 @@
                     </select>
                     <button class="danger" onclick="widget:SendCommand('spectator')">spectator</button>
                 </div>
-            </div>
-            <div class="content give" data-if="page == 'give'">
                 <div class="spread">
                     <div class="control">
                         <input type="text" placeholder="Filter units..." data-value="unitsFilterText"
                             data-event-change="filterUnits(unitsFilterText)" />
-                        <button data-event-click="unitsFilterText = ''; unitsFilterTechLevel=0; unitsFilterFaction=''; unitsFilterIsMobile=-1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)">x</button>
+                        <button
+                            data-event-click="unitsFilterText = ''; unitsFilterTechLevel=0; unitsFilterFaction=''; unitsFilterIsMobile=-1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)">x</button>
                     </div>
                     <div>
                         <button onclick="widget:SendCommand('luarules destroyunits')">
@@ -55,26 +54,42 @@
                 </div>
                 <div class="spread" style="margin-top: 10dp;">
                     <div>
-                        <button data-event-click="unitsFilterTechLevel = 1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterTechLevel==1">T1</button>
-                        <button data-event-click="unitsFilterTechLevel = 2; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterTechLevel==2">T2</button>
-                        <button data-event-click="unitsFilterTechLevel = 3; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterTechLevel==3">T3</button>
+                        <button
+                            data-event-click="unitsFilterTechLevel = 1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)"
+                            data-class-selected="unitsFilterTechLevel==1">T1</button>
+                        <button
+                            data-event-click="unitsFilterTechLevel = 2; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)"
+                            data-class-selected="unitsFilterTechLevel==2">T2</button>
+                        <button
+                            data-event-click="unitsFilterTechLevel = 3; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)"
+                            data-class-selected="unitsFilterTechLevel==3">T3</button>
                     </div>
                     <div>
-                        <button data-event-click="unitsFilterIsMobile = 1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterIsMobile==1">
-                            <img src="/icons/armcom.png" alt="" />                            
+                        <button
+                            data-event-click="unitsFilterIsMobile = 1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)"
+                            data-class-selected="unitsFilterIsMobile==1">
+                            <img src="/icons/armcom.png" alt="" />
                         </button>
-                        <button data-event-click="unitsFilterIsMobile = 0; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterIsMobile==0">
+                        <button
+                            data-event-click="unitsFilterIsMobile = 0; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)"
+                            data-class-selected="unitsFilterIsMobile==0">
                             <img src="/icons/factory_bot.png" alt="" />
                         </button>
                     </div>
                     <div>
-                        <button data-event-click="unitsFilterFaction = 'arm'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='arm'">
+                        <button
+                            data-event-click="unitsFilterFaction = 'arm'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)"
+                            data-class-selected="unitsFilterFaction=='arm'">
                             <img src="/luaui/images/advplayerslist/armada_default.png" alt="Armada" />
                         </button>
-                        <button data-event-click="unitsFilterFaction = 'cor'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='cor'">
+                        <button
+                            data-event-click="unitsFilterFaction = 'cor'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)"
+                            data-class-selected="unitsFilterFaction=='cor'">
                             <img src="/luaui/images/advplayerslist/cortex_default.png" alt="Cortex" />
                         </button>
-                        <button data-event-click="unitsFilterFaction = 'leg'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)" data-class-selected="unitsFilterFaction=='leg'">
+                        <button
+                            data-event-click="unitsFilterFaction = 'leg'; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)"
+                            data-class-selected="unitsFilterFaction=='leg'">
                             <img src="/luaui/images/advplayerslist/legion_default.png" alt="Legion" />
                         </button>
                     </div>

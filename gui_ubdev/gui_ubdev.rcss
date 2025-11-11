@@ -167,6 +167,10 @@ scrollbarvertical sliderbar {
     padding: 12dp;
 }
 
+.content > * {
+    margin-bottom: 6dp;
+}
+
 .grid {
     display: flex;
     gap: 8dp;
