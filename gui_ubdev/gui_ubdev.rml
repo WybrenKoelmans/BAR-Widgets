@@ -8,10 +8,10 @@
     <body id="gui_ubdev-widget">
         <div id="widget-container" data-model="gui_ubdev_model" class="panel">
             <!-- Small floating debug buttons -->
-            <div class="debug-controls">
+            <!-- <div class="debug-controls">
                 <button onclick="widget:Reload()" title="Reload Widget">r</button>
                 <button onclick="widget:ToggleDebugger()" title="Toggle Debugger">d</button>
-            </div>
+            </div> -->
             <handle move_target="#document">
                 <div class="navbar">
                     <h1 class="text-white">uBdev</h1>
