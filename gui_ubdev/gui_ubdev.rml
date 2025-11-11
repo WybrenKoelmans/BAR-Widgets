@@ -24,7 +24,7 @@
                     <button onclick="widget:SendCommand('godmode')">godmode</button>
                     <button onclick="widget:SendCommand('nocost')">nocost</button>
                     <button onclick="widget:SendCommand('atm')">atm</button>
-                    <button onclick="widget:SendCommand('luarules clearWrecks')">no wrecks</button>
+                    <button onclick="widget:SendCommand('luarules clearwrecks')">no wrecks</button>
                     <button onclick="widget:SendCommand('luarules loadmissiles')">missiles</button>
                     <button class="danger" onclick="widget:SendCommand('option restart')">restart</button>
                     <button onclick="widget:PauseAI()">toggle AI</button>
