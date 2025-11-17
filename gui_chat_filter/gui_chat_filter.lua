@@ -230,3 +230,16 @@ function widget:Shutdown()
         client = nil
     end
 end
+
+-- Persist filterMode between sessions
+function widget:GetConfigData()
+    return {
+        filterMode = filterMode
+    }
+end
+
+function widget:SetConfigData(data)
+    if data and data.filterMode ~= nil then
+        filterMode = data.filterMode
+    end
+end
