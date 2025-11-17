@@ -105,6 +105,29 @@ local function beyondAllRage(gameFrame, lineType, name, nameText, text, orgLineI
 end
 
 function widget:Initialize()
+    if WG.options and WG.options.addOption then
+        WG.options.addOption({
+            id = "chat_filter_mode",
+            group = "custom",
+            category = "basic",
+            name = "Chat Filter Mode",
+            type = "select",
+            options = { "Censor", "Block", "Kitty", "BeyondAllRage" },
+            value = filterMode + 1,
+            description = "Choose how chat messages are filtered.",
+            onchange = function(i, value)
+                filterMode = value - 1
+                if filterMode == 3 then
+                    SocketConnect("beyondallrage.zen-ben.com", 8696)
+                elseif client then
+                    client:close()
+                    client = nil
+                    connected = false
+                end
+            end,
+        })
+    end
+
     local data = VFS.LoadFile("LuaUI/Widgets/gui_chat_filter/filter.txt")
     if data == nil then
         Spring.Echo("Filter file not found!")
@@ -130,7 +153,7 @@ function widget:Initialize()
                 return text
             end
 
-            if filterMode == 4 then
+            if filterMode == 3 then
                 return beyondAllRage(gameFrame, lineType, name, nameText, text, orgLineID, ignore, chatLineID)
             end
 
@@ -149,7 +172,7 @@ function widget:Initialize()
             return text
         end)
 
-    if filterMode == 4 then
+    if filterMode == 3 then
         SocketConnect("beyondallrage.zen-ben.com", 8696)
     end
 end
