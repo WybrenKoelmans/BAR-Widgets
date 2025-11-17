@@ -81,6 +81,11 @@ local function SocketConnect(host, port)
     return true
 end
 
+local function cleanText(text)
+    -- strip out unwanted bytes, so anything not [azA-Z0-9 .,!?'-]
+    return text:gsub("[^%a%d .,!?'-]", "")
+end
+
 local function beyondAllRage(gameFrame, lineType, name, nameText, text, orgLineID, ignore, chatLineID)
     if not connected then
         return text
@@ -97,7 +102,7 @@ local function beyondAllRage(gameFrame, lineType, name, nameText, text, orgLineI
 
     local encoded = Json.encode({
         id = chatLineID,
-        text = text
+        text = cleanText(text)
     })
     client:send(encoded)
 
@@ -195,7 +200,7 @@ function widget:Update(dt)
 
             local decoded = Json.decode(data)
             local chatLineID = decoded.id
-            local filteredText = decoded.text
+            local filteredText = cleanText(decoded.text)
             local chatData = chatBuffer[chatLineID]
             if chatData then
                 WG['chat'].addChatLine(
