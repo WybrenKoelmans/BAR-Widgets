@@ -142,7 +142,7 @@ for _, teamID in ipairs(spGetTeamList()) do
 end
 for i = 1, #teamList do
     local id, leader, isDead, hasAI = spGetTeamInfo(teamList[i], false)
-    local teamName = spGetPlayerInfo(leader, false)
+    local teamName = spGetPlayerInfo(leader, false) or "gaia"
     if teamName then
         local r,g,b,a = Spring.GetTeamColor(teamList[i])
         teams[i] = {
