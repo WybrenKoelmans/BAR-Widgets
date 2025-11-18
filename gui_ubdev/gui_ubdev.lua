@@ -144,9 +144,11 @@ for i = 1, #teamList do
     local id, leader, isDead, hasAI = spGetTeamInfo(teamList[i], false)
     local teamName = spGetPlayerInfo(leader, false)
     if teamName then
+        local r,g,b,a = Spring.GetTeamColor(teamList[i])
         teams[i] = {
             id = id,
             name = hasAI and GetAIName(teamList[i]) or teamName,
+            color = (string.format("rgba(%d, %d, %d, %0.2f)", r*255, g*255, b*255, a*255)),
         }
     end
 end
@@ -341,6 +343,15 @@ function widget:PauseAI()
     end
     -- Paused or unpaused all AI teams
     arePausing = not arePausing
+end
+
+function widget:KeyPress(key, mods, isRepeat, label, unicode)
+    if key == 27 then -- ESC key
+        dm_handle.selectedUnit = ''
+        clearDrawHandles()
+        return true
+    end
+    return false
 end
 
 function widget:SendCommand(command)

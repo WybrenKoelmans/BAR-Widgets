@@ -162,11 +162,6 @@ scrollbarvertical sliderbar {
     background: rgba(40, 49, 35, 225);
 }
 
-.content {
-    border-top: 3dp rgba(40, 49, 35, 225);
-    padding: 12dp;
-}
-
 .content > * {
     margin-bottom: 6dp;
 }
@@ -213,6 +208,7 @@ select {
     color: white;
     font-size: 14dp;
     width: 100dp;
+    z-index: 10;
 }
 
 button.danger {
@@ -222,6 +218,18 @@ button.danger {
 selectbox {
     background-color: #222;
     color: white;
+    z-index: 10;
+    overflow: visible;
+}
+
+.commands {
+    background-color: rgba(0,0,0,128);
+    padding: 12dp;
+}
+
+.units {
+    padding: 16dp;
+    padding-top: 0;
 }
 
 selectarrow {
@@ -232,9 +240,24 @@ selectarrow {
 
 option {
     padding: 2dp 6dp;
-    background-color: #222;
     color: white;
+    white-space: nowrap;
+    width: 300dp;
+    cursor: pointer;
+    background-color: #111;
+    border-bottom: 1dp #222;
 }
+
+option:hover {
+    font-weight: bold;
+}
+/* Am I crazy or why doesn't this work?
+option:nth-of-type(even) {
+    background-color: #222;
+}
+option:nth-of-type(odd) {
+    background-color: #333;
+} */
 
 input[type="text"] {
     padding: 6px 8px;
