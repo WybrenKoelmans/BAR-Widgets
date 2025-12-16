@@ -177,7 +177,7 @@ button {
     border-radius: 4dp;
     background: #333333;
     color: white;
-    font-size: 14dp;
+    font-size: 12dp;
     cursor: pointer;
 
     transition: background 0.1s;

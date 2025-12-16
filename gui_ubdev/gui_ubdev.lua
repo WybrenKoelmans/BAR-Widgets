@@ -79,6 +79,18 @@ local favoriteUnitsNames = {
 local favorites = {}
 local nameToDefID = {}
 
+local unitNameToFactoryHumanName = {}
+for _, unitDef in ipairs(UnitDefs) do
+    if unitDef.isFactory then
+        for _, buildOptionID in ipairs(unitDef.buildOptions or {}) do
+            local buildOptionDef = UnitDefs[buildOptionID]
+            if buildOptionDef then
+                unitNameToFactoryHumanName[buildOptionDef.name] = unitDef.translatedHumanName or unitDef.humanName or unitDef.name or "???"
+            end
+        end
+    end
+end
+
 local allUnits = {}
 for _, unitDef in ipairs(UnitDefs) do
     local iconPath = "unitpics/" .. unitDef.name .. ".dds"
@@ -105,6 +117,7 @@ for _, unitDef in ipairs(UnitDefs) do
         faction = GetFaction(unitDef),
         group = group,
         isMobile = unitDef.isBuilding and 0 or 1,
+        factory = unitNameToFactoryHumanName[unitDef.name] or '',
     }
     nameToDefID[unitDef.name] = unitDef.id
 
@@ -180,7 +193,8 @@ local init_model = {
                 if unit.techlevel == techLevel or techLevel == 0 then
                     if unit.isMobile == isMobile or isMobile == -1 then
                         if string.find(string.lower(unit.humanName), lowerFilter, 1, true) 
-                        or string.find(string.lower(unit.name), lowerFilter, 1, true) then
+                        or string.find(string.lower(unit.name), lowerFilter, 1, true) 
+                        or string.find(string.lower(unit.factory), lowerFilter, 1, true) then
                             table.insert(filtered, unit)
                         end
                     end
