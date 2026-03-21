@@ -1,0 +1,8 @@
+{
+	"id": "unit_builders_are_lazy",
+	"display_name": "Builders Are Lazy",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Builders will idle instead of guarding after building (to become available from the idle mechanic)"
+}

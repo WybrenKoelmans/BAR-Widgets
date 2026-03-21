@@ -1,0 +1,8 @@
+{
+	"id": "unit_lazy_reclaimers",
+	"display_name": "Lazy Reclaimers",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Reclaimers will stop reclaiming when the metal/energy storage is full."
+}

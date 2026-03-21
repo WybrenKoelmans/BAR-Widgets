@@ -1,0 +1,8 @@
+{
+	"id": "gui_chat_filter",
+	"display_name": "Chat Filter",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Censors, modifies or blocks chat messages based on user-defined rules."
+}

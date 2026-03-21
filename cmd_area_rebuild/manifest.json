@@ -1,0 +1,8 @@
+{
+	"id": "cmd_area_rebuild",
+	"display_name": "Area Rebuild",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Rebuilds the selected area."
+}

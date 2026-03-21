@@ -1,0 +1,8 @@
+{
+	"id": "cmd_build_snap",
+	"display_name": "Build Snap (all buildings)",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Snaps building placement to the nearest valid build grid point."
+}

@@ -1,0 +1,8 @@
+{
+	"id": "cmd_smart_miners",
+	"display_name": "Smart Miners",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Miners remember where they placed mines, and re-mine when needed."
+}

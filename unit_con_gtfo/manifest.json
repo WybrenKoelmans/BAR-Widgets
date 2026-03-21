@@ -1,0 +1,8 @@
+{
+	"id": "unit_con_gtfo",
+	"display_name": "Constructors GTFO",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Makes constructors leave the factory faster by giving them a move order immediately after they finish."
+}
