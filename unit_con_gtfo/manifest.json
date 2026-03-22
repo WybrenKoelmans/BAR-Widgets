@@ -4,5 +4,6 @@
 	"author": "uBdead",
 	"discord_link": "",
 	"github_link": "",
-	"description": "Makes constructors leave the factory faster by giving them a move order immediately after they finish."
+	"description": "Makes constructors leave the factory faster by giving them a move order immediately after they finish.",
+	"last_updated": "2025-09-14T18:07:46.000Z"
 }
