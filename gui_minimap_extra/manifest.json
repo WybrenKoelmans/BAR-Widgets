@@ -2,8 +2,8 @@
 	"id": "gui_minimap_extra",
 	"display_name": "Minimap Extra - Damage Fields",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1413589308928954369",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/tree/main/gui_minimap_extra",
 	"description": "Enhances the minimap with damage visualization that fades over time",
-	"last_updated": "2025-09-11T16:15:57.000Z"
+	"last_updated": "2026-03-31T16:15:57.000Z"
 }
