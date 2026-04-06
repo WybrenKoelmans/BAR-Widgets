@@ -1,5 +1,4 @@
-local widget = widget
--- Localize global tables for linter/runtime
+local widget = widget ---@type Widget
 local Spring = Spring
 local gl = gl
 local GL = GL
@@ -7,133 +6,210 @@ local WG = WG
 local Game = Game
 local UnitDefs = UnitDefs
 local widgetHandler = widgetHandler
--- Stencil constants (mirroring usage in gui_attackrange_gl4)
-local GL_KEEP = 0x1E00 -- GL.KEEP numeric
-local GL_REPLACE = GL.REPLACE
-
-local function get_lua_dirname()
-	-- Dynamically determine the directory of this script for portability
-	local info = debug and debug.getinfo and debug.getinfo(1, "S")
-	if info and info.source then
-		local src = info.source
-		if src:sub(1,1) == "@" then src = src:sub(2) end -- remove leading @
-		-- Normalize to VFS path (LuaUI/Widgets/...) if possible
-		local vfs = src:match("(LuaUI/Widgets/.*/)")
-		if vfs then return vfs end
-		-- Fallback: just return directory part
-		return src:match("(.*/)") or "./"
-	end
-	return "./"
-end
-local LUA_DIRNAME = get_lua_dirname()
 
 function widget:GetInfo()
 	return {
 		name = "Sensor Ranges Radar Preview (All radars)",
-		desc = "Extend Raytraced Radar Range Coverage on all Radars (GL4)",
+		desc = "Shows raytraced radar coverage for all allied radar buildings (GL4)",
 		author = "uBdead, Beherith",
 		date = "2025.08.13",
-		license = "Lua: GPLv2, GLSL: (c) Beherith (mysterme@gmail.com) --> IM NOT A LAWYER",
+		license = "Lua: GPLv2, GLSL: (c) Beherith (mysterme@gmail.com)",
 		layer = 0,
-		enabled = true
+		enabled = true,
 	}
 end
 
--- Helper: check if we are building or have selected a radar building
-local function IsRadarBuildOrSelected()
-	-- Check active build command
-	local spGetActiveCommand = Spring.GetActiveCommand
-	local spGetSelectedUnits = Spring.GetSelectedUnits
-	local spGetUnitDefID = Spring.GetUnitDefID
-	local cmdID = select(2, spGetActiveCommand())
-	if cmdID and cmdID < 0 then
-		local unitDefID = -cmdID
-		local ud = UnitDefs[unitDefID]
-		if ud and ud.radarDistance and ud.radarDistance > 0 and ud.isBuilding then
-			return true
-		end
-	end
-	-- Check selected units
-	local selected = spGetSelectedUnits()
-	for i = 1, #selected do
-		local unitDefID = spGetUnitDefID(selected[i])
-		local ud = UnitDefs[unitDefID]
-		if ud and ud.radarDistance and ud.radarDistance > 0 and ud.isBuilding then
-			return true
-		end
-	end
-	return false
-end
-local SHADER_RESOLUTION = 16 -- matches mip resolution in original widget
-local UPDATE_RADAR_LIST_FRAMES = 45
-local radarYOffset = 50
+--------------------------------------------------------------------------------
+-- Performance-tuned constants
+--------------------------------------------------------------------------------
+local SHADER_RESOLUTION = 32   -- grid cell size in elmos (2x coarser than original = 4x fewer vertices)
+local RAYMARCH_STEPS = 40       -- ray-march steps per vertex (vs 112 original = ~3x cheaper)
+local RADAR_Y_OFFSET = 50
+local REFRESH_INTERVAL = 90    -- frames between full radar list refresh
+local GL_KEEP = 0x1E00
 
 --------------------------------------------------------------------------------
--- Locals & engine refs
+-- Engine API shortcuts
 --------------------------------------------------------------------------------
+local mathFloor = math.floor
+local mathMax = math.max
 local spGetMyAllyTeamID = Spring.GetMyAllyTeamID
 local spGetTeamList = Spring.GetTeamList
 local spGetTeamUnits = Spring.GetTeamUnits
 local spGetUnitPosition = Spring.GetUnitPosition
 local spGetUnitDefID = Spring.GetUnitDefID
 local spIsGUIHidden = Spring.IsGUIHidden
+local spGetActiveCommand = Spring.GetActiveCommand
+local spGetSelectedUnits = Spring.GetSelectedUnits
+local spGetGameFrame = Spring.GetGameFrame
 
 local LuaShader = gl.LuaShader
 local InstanceVBOTable = gl.InstanceVBOTable
 
-local radarShader
-local shaderSourceCache = {
-	vssrcpath = LUA_DIRNAME .. "sensor_ranges_radar_preview_all.vert.glsl",
-	fssrcpath = LUA_DIRNAME .. "sensor_ranges_radar_preview_all.frag.glsl",
-	shaderName = "AlliedRadarUnion GL4",
-	uniformInt = { heightmapTex = 0 },
-	uniformFloat = { radarcenter_range = { 0,0,0,0 }, resolution = { 128 }, },
-	shaderConfig = {},
+--------------------------------------------------------------------------------
+-- Radar unit definitions (built once at load time)
+--------------------------------------------------------------------------------
+local radarDefs = {} -- unitDefID -> { range, emitHeight }
+
+for unitDefID, ud in pairs(UnitDefs) do
+	if ud.radarDistance and ud.radarDistance > 0 and ud.isBuilding then
+		radarDefs[unitDefID] = {
+			range = ud.radarDistance,
+			emitHeight = (ud.radarEmitHeight or 0) + RADAR_Y_OFFSET,
+		}
+	end
+end
+
+--------------------------------------------------------------------------------
+-- Inline GLSL shaders
+--
+-- Performance notes vs original:
+--   * Grid is 2x coarser (SHADER_RESOLUTION 32 vs 16) → 4x fewer vertices
+--   * Ray-march uses 40 steps vs 112 → 2.8x fewer texture lookups per vertex
+--   * HeightAt samples mip level 1 → cheaper texture reads
+--   * Out-of-range vertices early-discard before ray-march loop
+--   * Combined: ~10x reduction in texture lookups per radar
+--------------------------------------------------------------------------------
+local vsSrc = [[
+#version 420
+#line 10000
+
+//__DEFINES__
+
+layout(location = 0) in vec2 xyworld_xyfract;
+
+uniform vec4 radarcenter_range; // x, y, z, range
+uniform float resolution;
+uniform sampler2D heightmapTex;
+
+out float v_visible;
+
+//__ENGINEUNIFORMBUFFERDEFS__
+
+#line 11000
+
+float heightAt(vec2 w) {
+	vec2 uv = clamp(w, vec2(8.0), mapSize.xy - 8.0) / mapSize.xy;
+	return max(0.0, textureLod(heightmapTex, uv, 1.0).x);
 }
 
--- Dynamic VAOs per radar range (so we don't assume only two sizes)
-local rangeToVAO = {}
-local rangeToGridSize = {}
+void main() {
+	vec3 center = radarcenter_range.xyz;
+	float range = radarcenter_range.w;
 
--- Live radar instances list
-local alliedRadars = {}
-local lastRadarUpdate = 0
+	vec3 pos;
+	pos.xz = center.xz + xyworld_xyfract.xy * range;
+	pos.y = heightAt(pos.xz);
+
+	float dist = length(center.xz - pos.xz);
+
+	// Early discard for vertices outside radar range — skip expensive ray-march
+	if (dist > range) {
+		v_visible = 0.0;
+		gl_Position = vec4(0.0, 0.0, -2.0, 1.0);
+		return;
+	}
+
+	// Ray-march toward radar center checking terrain occlusion
+	vec3 toCenter = center - pos;
+	vec3 step = toCenter / resolution;
+	float obscured = 0.0;
+	for (float i = 1.0; i < resolution; i += 1.0) {
+		vec3 raypos = pos + step * i;
+		float h = heightAt(raypos.xz);
+		obscured = max(obscured, h - raypos.y);
+		if (obscured >= 2.0) break;
+	}
+
+	v_visible = (obscured < 2.0) ? 1.0 : 0.0;
+	pos.y += 0.15;
+	gl_Position = cameraViewProj * vec4(pos, 1.0);
+}
+]]
+
+local fsSrc = [[
+#version 420
+#line 20000
+
+//__ENGINEUNIFORMBUFFERDEFS__
+
+in float v_visible;
+out vec4 fragColor;
+
+void main() {
+	if (v_visible < 0.5) discard;
+	fragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+]]
+
+--------------------------------------------------------------------------------
+-- State
+--------------------------------------------------------------------------------
+local radarShader
+local shaderSourceCache = {
+	vsSrc = vsSrc,
+	fsSrc = fsSrc,
+	shaderName = "AlliedRadarCoverage GL4",
+	uniformInt = { heightmapTex = 0 },
+	uniformFloat = {
+		radarcenter_range = { 0, 0, 0, 0 },
+		resolution = { RAYMARCH_STEPS },
+	},
+	shaderConfig = {},
+	forceupdate = true,
+}
+
+local rangeToVAO = {} -- radar range -> VAO (lazily created)
+local alliedRadars = {} -- { unitID, range, emitHeight }[]
+local lastRefreshFrame = -999
 
 --------------------------------------------------------------------------------
 -- Helpers
 --------------------------------------------------------------------------------
-local function goodbye(reason)
-	Spring.Echo("[AlliedRadarUnion] exiting: " .. reason)
-	widgetHandler:RemoveWidget()
+
+--- Check if the player is actively placing a radar building or has one selected.
+local function isRadarContext()
+	local cmdID = select(2, spGetActiveCommand())
+	if cmdID and cmdID < 0 and radarDefs[-cmdID] then
+		return true
+	end
+	local sel = spGetSelectedUnits()
+	for i = 1, #sel do
+		local udid = spGetUnitDefID(sel[i])
+		if udid and radarDefs[udid] then
+			return true
+		end
+	end
+	return false
 end
 
+--- Return (or create) a VAO with a grid matching the given radar range.
 local function getOrCreateVAO(range)
-	local vao = rangeToVAO[range]
-	if vao then return vao end
-	local gridsize = math.max(4, math.floor(range / SHADER_RESOLUTION))
-	local vbo, _ = InstanceVBOTable.makePlaneVBO(1, 1, gridsize)
-	local ibo, _ = InstanceVBOTable.makePlaneIndexVBO(gridsize, gridsize, true)
-	vao = gl.GetVAO()
+	if rangeToVAO[range] then return rangeToVAO[range] end
+	local gridSize = mathMax(4, mathFloor(range / SHADER_RESOLUTION))
+	local vbo = InstanceVBOTable.makePlaneVBO(1, 1, gridSize)
+	local ibo = InstanceVBOTable.makePlaneIndexVBO(gridSize, gridSize, true)
+	local vao = gl.GetVAO()
 	vao:AttachVertexBuffer(vbo)
 	vao:AttachIndexBuffer(ibo)
 	rangeToVAO[range] = vao
-	rangeToGridSize[range] = gridsize
 	return vao
 end
 
+--- Scan all allied teams for radar buildings.
 local function refreshAlliedRadars()
 	alliedRadars = {}
-	local myAllyTeam = spGetMyAllyTeamID()
-	for _, teamID in ipairs(spGetTeamList(myAllyTeam)) do
+	local myAlly = spGetMyAllyTeamID()
+	for _, teamID in ipairs(spGetTeamList(myAlly)) do
 		for _, unitID in ipairs(spGetTeamUnits(teamID)) do
 			local udid = spGetUnitDefID(unitID)
 			if udid then
-				local ud = UnitDefs[udid]
-				if ud and ud.radarDistance and ud.radarDistance > 0 and ud.isBuilding then
-					alliedRadars[#alliedRadars+1] = {
+				local def = radarDefs[udid]
+				if def then
+					alliedRadars[#alliedRadars + 1] = {
 						unitID = unitID,
-						range = ud.radarDistance,
-						emitHeight = (ud.radarEmitHeight or 0) + radarYOffset
+						range = def.range,
+						emitHeight = def.emitHeight,
 					}
 				end
 			end
@@ -142,110 +218,105 @@ local function refreshAlliedRadars()
 end
 
 --------------------------------------------------------------------------------
--- GL4 init
---------------------------------------------------------------------------------
-local function initGL4()
-	radarShader = LuaShader.CheckShaderUpdates(shaderSourceCache)
-	if not radarShader then
-		goodbye("shader compile fail")
-		return
-	end
-end
-
---------------------------------------------------------------------------------
 -- Widget lifecycle
 --------------------------------------------------------------------------------
 function widget:Initialize()
 	if not gl.CreateShader then
-		goodbye("No shader support")
+		widgetHandler:RemoveWidget()
 		return
 	end
-	initGL4()
+	radarShader = LuaShader.CheckShaderUpdates(shaderSourceCache)
+	if not radarShader then
+		Spring.Echo("[AlliedRadarCoverage] Shader compilation failed, removing widget.")
+		widgetHandler:RemoveWidget()
+		return
+	end
 	refreshAlliedRadars()
 end
 
 function widget:Shutdown()
-	-- cleanup handled by engine GC
 end
 
 --------------------------------------------------------------------------------
--- Drawing
+-- Drawing: stencil-based union rendering
+--
+-- Pass 1: For each radar, draw its ray-marched coverage mesh into the stencil
+--         buffer with color writes off. Visible fragments write stencil=1.
+--         Overlapping radars naturally form a union (ALWAYS pass, write 1).
+-- Pass 2: Draw two ground quads testing stencil:
+--         stencil==1 → green (covered), stencil==0 → red (uncovered)
 --------------------------------------------------------------------------------
 function widget:DrawWorld()
-	if not IsRadarBuildOrSelected() then return end
+	if not isRadarContext() then return end
 	if spIsGUIHidden() or (WG['topbar'] and WG['topbar'].showingQuit()) then return end
 
-	local frame = Spring.GetGameFrame()
-	if frame - lastRadarUpdate > UPDATE_RADAR_LIST_FRAMES then
+	-- Periodic refresh of radar list
+	local frame = spGetGameFrame()
+	if frame - lastRefreshFrame > REFRESH_INTERVAL then
 		refreshAlliedRadars()
-		lastRadarUpdate = frame
+		lastRefreshFrame = frame
 	end
 	if #alliedRadars == 0 then return end
 
-	-- Stencil pass: mark union of unobscured radar coverage with value 1
+	local snap = SHADER_RESOLUTION * 2
+
+	------------------------------------------------------------------------
+	-- Pass 1: Stencil — mark radar-covered ground
+	------------------------------------------------------------------------
 	gl.DepthTest(false)
 	gl.Culling(GL.BACK)
 	gl.Texture(0, "$heightmap")
 	radarShader:Activate()
-	radarShader:SetUniform("resolution", 112)
+	radarShader:SetUniform("resolution", RAYMARCH_STEPS)
 
 	gl.Clear(GL.STENCIL_BUFFER_BIT)
 	gl.StencilTest(true)
-	gl.StencilMask(1)               -- allow writing first bit
-	gl.StencilFunc(GL.ALWAYS, 1, 1) -- always pass stencil test
-	gl.StencilOp(GL_KEEP, GL_KEEP, GL_REPLACE) -- write ref (1) where fragment passes & not discarded
-	gl.ColorMask(false,false,false,false) -- no color writes this pass
+	gl.StencilMask(1)
+	gl.StencilFunc(GL.ALWAYS, 1, 1)
+	gl.StencilOp(GL_KEEP, GL_KEEP, GL.REPLACE)
+	gl.ColorMask(false, false, false, false)
 	gl.Blending(false)
 
 	for i = 1, #alliedRadars do
 		local r = alliedRadars[i]
 		local x, y, z = spGetUnitPosition(r.unitID)
 		if x then
-			local range = r.range
-			local vao = getOrCreateVAO(range)
-			local snap = (SHADER_RESOLUTION * 2)
 			radarShader:SetUniform("radarcenter_range",
-				math.floor((x + 8)/snap)*snap,
+				mathFloor((x + 8) / snap) * snap,
 				(y or 0) + r.emitHeight,
-				math.floor((z + 8)/snap)*snap,
-				range
+				mathFloor((z + 8) / snap) * snap,
+				r.range
 			)
-			vao:DrawElements(GL.TRIANGLES)
+			getOrCreateVAO(r.range):DrawElements(GL.TRIANGLES)
 		end
 	end
 
 	radarShader:Deactivate()
-	gl.Texture(0,false)
+	gl.Texture(0, false)
 
-	-- Color pass: draw red where stencil == 0 (uncovered), green where stencil == 1 (covered)
-	gl.ColorMask(true,true,true,true)
+	------------------------------------------------------------------------
+	-- Pass 2: Color overlay via stencil test (two cheap ground quads)
+	------------------------------------------------------------------------
+	gl.ColorMask(true, true, true, true)
 	gl.Blending(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA)
+	gl.StencilMask(0)
 
-	-- Red (uncovered): stencil value 0
-	gl.StencilFunc(GL.EQUAL, 0, 1)
-	gl.StencilMask(0) -- don't modify stencil now
-	gl.Color(1,0,0,0.10)
-	gl.DrawGroundQuad(0,0, Game.mapSizeX, Game.mapSizeZ)
-
-	-- Green (covered): stencil value 1
+	-- Green where covered (stencil == 1)
 	gl.StencilFunc(GL.EQUAL, 1, 1)
-	gl.Color(0,1,0,0.10)
-	gl.DrawGroundQuad(0,0, Game.mapSizeX, Game.mapSizeZ)
+	gl.Color(0, 1, 0, 0.10)
+	gl.DrawGroundQuad(0, 0, Game.mapSizeX, Game.mapSizeZ)
 
-	-- Cleanup stencil state
+	-- Red where uncovered (stencil == 0)
+	gl.StencilFunc(GL.EQUAL, 0, 1)
+	gl.Color(1, 0, 0, 0.10)
+	gl.DrawGroundQuad(0, 0, Game.mapSizeX, Game.mapSizeZ)
+
+	------------------------------------------------------------------------
+	-- Cleanup
+	------------------------------------------------------------------------
 	gl.StencilTest(false)
 	gl.StencilMask(255)
+	gl.Color(1, 1, 1, 1)
 	gl.Culling(false)
 	gl.DepthTest(true)
-end
-
---------------------------------------------------------------------------------
--- Debug / hot reload support: recompile shader if files changed
---------------------------------------------------------------------------------
-function widget:Update(dt)
-	-- Hot reload shader sources if they changed on disk.
-	local maybe = LuaShader.CheckShaderUpdates(shaderSourceCache)
-	if maybe then
-		radarShader = maybe
-	end
 end
