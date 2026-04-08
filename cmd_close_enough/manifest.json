@@ -1,0 +1,9 @@
+{
+	"id": "cmd_close_enough",
+	"display_name": "Close Enough",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Clicking right next to a unit (so missing it), will just select it anyway.",
+	"last_updated": "2026-04-08T20:07:47.000Z"
+}
