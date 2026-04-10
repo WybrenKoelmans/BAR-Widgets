@@ -31,8 +31,8 @@ local spGetMyTeamID        = Spring.GetMyTeamID
 --------------------------------------------------------------------------------
 
 local config = {
-  radius           = 100,  -- elmos around the click to search for units
-  includeBuildings = true, -- also "close enough" select buildings
+  radius           = 50,  -- elmos around the click to search for units
+  includeBuildings = false, -- also "close enough" select buildings
 }
 
 -- Set of UnitDefIDs that should never be selected (decorative objects, etc.)
