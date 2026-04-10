@@ -125,6 +125,12 @@ function widget:GameProgress(frame)
 end
 
 function widget:Initialize()
+    if Spring.IsReplay() then
+        Spring.Echo("Turbo Catchup: Replay detected, disabling widget")
+        widgetHandler:RemoveWidget()
+        return
+    end
+
     -- prefill the frames
     lastFrame = spGetGameFrame()
     frameRate = 30
