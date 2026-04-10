@@ -1,3 +1,0 @@
----@class Widget
-
----@class RmlUi
