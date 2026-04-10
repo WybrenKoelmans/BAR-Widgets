@@ -1,0 +1,423 @@
+/*
+ * Widget Presets - RCSS Stylesheet
+ * Styled to match the BAR UI conventions (dark theme, Exo 2 font, dp units)
+ */
+
+* {
+    box-sizing: border-box;
+    font-family: "Exo 2";
+}
+
+body,
+div,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    display: block;
+}
+
+h1 {
+    font-size: 1.4em;
+    margin: .4em 0;
+}
+
+h3 {
+    font-size: 1em;
+    margin: .3em 0;
+    color: #ccc;
+}
+
+strong {
+    font-weight: bold;
+}
+
+handle[move_target] {
+    cursor: move;
+}
+
+scrollbarvertical {
+    position: relative;
+    width: 8dp;
+}
+
+scrollbarvertical slidertrack {
+    background: #333;
+}
+
+scrollbarvertical sliderbar {
+    background: #2e6b1b80;
+    border-radius: 4dp;
+}
+
+/* ========== Layout ========== */
+
+#widget-presets-widget {
+    width: 340dp;
+}
+
+.panel {
+    border-radius: 8dp;
+    background-color: rgba(0, 0, 0, 180);
+}
+
+/* ========== Navbar ========== */
+
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 200);
+    padding: 4dp 12dp;
+    border-radius: 8dp 8dp 0dp 0dp;
+}
+
+.navbar h1 {
+    font-size: 16dp;
+    margin: 0;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8dp;
+}
+
+.text-white {
+    color: white;
+}
+
+.btn-close {
+    padding: 2dp 8dp;
+    border-radius: 4dp;
+    background: #333;
+    color: #aaa;
+    font-size: 14dp;
+    cursor: pointer;
+}
+
+.btn-close:hover {
+    background: #555;
+    color: white;
+}
+
+/* ========== State Badge ========== */
+
+.state-badge {
+    padding: 2dp 8dp;
+    border-radius: 10dp;
+    font-size: 11dp;
+    font-weight: bold;
+    color: white;
+    background: #444;
+}
+
+.state-badge.state-player {
+    background: #2e6b1b;
+}
+
+.state-badge.state-spectator {
+    background: #5a4b1b;
+}
+
+.state-badge.state-replay {
+    background: #1b4a6b;
+}
+
+/* ========== Content ========== */
+
+.content {
+    padding: 10dp;
+}
+
+.section {
+    margin-bottom: 10dp;
+}
+
+.section-header {
+    margin-bottom: 6dp;
+    padding-bottom: 4dp;
+    border-bottom: 1dp solid #333;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 13dp;
+    color: #999;
+    text-transform: uppercase;
+}
+
+/* ========== State Change Banner ========== */
+
+.state-change-banner {
+    background: rgba(90, 75, 27, 200);
+    border-radius: 6dp;
+    padding: 10dp;
+    margin-bottom: 10dp;
+}
+
+.banner-text {
+    color: #ffe082;
+    font-size: 12dp;
+    margin-bottom: 8dp;
+}
+
+.banner-actions {
+    display: flex;
+    gap: 6dp;
+}
+
+.btn-suggest {
+    padding: 4dp 10dp;
+    border-radius: 4dp;
+    background: #2e6b1b;
+    color: white;
+    font-size: 11dp;
+    cursor: pointer;
+}
+
+.btn-suggest:hover {
+    background: #3a8a24;
+}
+
+.btn-dismiss {
+    padding: 4dp 10dp;
+    border-radius: 4dp;
+    background: #555;
+    color: #ccc;
+    font-size: 11dp;
+    cursor: pointer;
+}
+
+.btn-dismiss:hover {
+    background: #666;
+}
+
+/* ========== Preset List ========== */
+
+.preset-list {
+    max-height: 260dp;
+    overflow-y: auto;
+}
+
+.scrollable {
+    overflow-y: auto;
+}
+
+.preset-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6dp 10dp;
+    margin-bottom: 2dp;
+    border-radius: 4dp;
+    background: rgba(40, 40, 40, 180);
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.preset-row:hover {
+    background: rgba(60, 60, 60, 220);
+}
+
+.preset-row.active {
+    background: rgba(46, 107, 27, 150);
+    border-left: 3dp solid #4caf50;
+}
+
+.preset-row.partial {
+    border-left: 3dp solid #ff9800;
+}
+
+.preset-info {
+    flex-grow: 1;
+    cursor: pointer;
+}
+
+.preset-name {
+    color: white;
+    font-size: 13dp;
+    font-weight: bold;
+}
+
+.preset-meta {
+    color: #888;
+    font-size: 11dp;
+    margin-top: 2dp;
+}
+
+.match-badge {
+    padding: 1dp 5dp;
+    border-radius: 8dp;
+    font-size: 10dp;
+    margin-left: 4dp;
+}
+
+.match-badge.match-full {
+    background: rgba(46, 107, 27, 200);
+    color: #a5d6a7;
+}
+
+.match-badge.match-partial {
+    background: rgba(90, 75, 27, 200);
+    color: #ffe082;
+}
+
+.match-badge.match-low {
+    background: rgba(80, 30, 30, 200);
+    color: #ef9a9a;
+}
+
+/* ========== Preset Action Buttons ========== */
+
+.preset-actions {
+    display: flex;
+    gap: 4dp;
+    align-items: center;
+}
+
+.btn-icon {
+    padding: 3dp 6dp;
+    border-radius: 3dp;
+    background: transparent;
+    color: #777;
+    font-size: 14dp;
+    cursor: pointer;
+    min-width: 24dp;
+    text-align: center;
+}
+
+.btn-icon:hover {
+    color: white;
+}
+
+.btn-update:hover {
+    background: rgba(46, 107, 27, 150);
+}
+
+.btn-delete:hover {
+    background: rgba(120, 30, 30, 150);
+}
+
+/* ========== Auto Switch ========== */
+
+.auto-switch-grid {
+    padding: 4dp 0;
+}
+
+.auto-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4dp;
+}
+
+.auto-label {
+    color: #aaa;
+    font-size: 12dp;
+    width: 80dp;
+}
+
+select {
+    padding: 4dp 6dp;
+    border-radius: 4dp;
+    background-color: #222;
+    color: white;
+    font-size: 12dp;
+    width: 200dp;
+}
+
+selectbox {
+    background-color: #222;
+    color: white;
+    z-index: 20;
+    overflow: visible;
+}
+
+selectarrow {
+    width: 14dp;
+    height: 14dp;
+}
+
+option {
+    padding: 3dp 6dp;
+    color: white;
+    cursor: pointer;
+    background-color: #111;
+    border-bottom: 1dp #222;
+}
+
+option:hover {
+    font-weight: bold;
+}
+
+/* ========== New Preset Section ========== */
+
+.new-preset-section {
+    border-top: 1dp solid #333;
+    padding-top: 10dp;
+}
+
+.new-preset-row {
+    display: flex;
+    gap: 6dp;
+    align-items: center;
+}
+
+input[type="text"] {
+    padding: 5dp 8dp;
+    border-radius: 4dp;
+    background-color: #222;
+    color: white;
+    font-size: 12dp;
+    flex-grow: 1;
+}
+
+.btn-save {
+    padding: 5dp 12dp;
+    border-radius: 4dp;
+    background: #2e6b1b;
+    color: white;
+    font-size: 12dp;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-save:hover {
+    background: #3a8a24;
+}
+
+/* ========== Status Bar ========== */
+
+.status-bar {
+    padding: 6dp 10dp;
+    margin-top: 6dp;
+    border-radius: 4dp;
+    background: rgba(30, 30, 30, 200);
+    color: #aaa;
+    font-size: 11dp;
+    text-align: center;
+}
+
+/* ========== Common Button Base ========== */
+
+button {
+    padding: 5dp 10dp;
+    border-radius: 4dp;
+    background: #333;
+    color: white;
+    font-size: 12dp;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+button:hover {
+    background: rgba(50, 50, 50, 220);
+}
+
+button:active {
+    background: rgba(100, 100, 100, 220);
+}

@@ -1,0 +1,9 @@
+{
+	"id": "gui_widgets_presets",
+	"display_name": "Widget Presets",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Stores and applies presets of widget states, with automatic mode switching for Player/Spectator/Replay.",
+	"last_updated": "2026-04-10T00:00:00.000Z"
+}

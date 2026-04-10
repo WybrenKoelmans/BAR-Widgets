@@ -1,0 +1,78 @@
+* {
+    box-sizing: border-box;
+    font-family: "Exo 2";
+}
+
+body,
+div,
+strong {
+    display: block;
+}
+
+strong {
+    display: inline;
+    font-weight: bold;
+}
+
+#widget-presets-notify {
+    position: absolute;
+    bottom: 60dp;
+    left: 50%;
+    /* centre horizontally */
+    margin-left: -260dp;
+    width: 520dp;
+}
+
+.notify-pill {
+    display: flex;
+    align-items: center;
+    gap: 8dp;
+    background: rgba(10, 10, 10, 220);
+    border: 1dp solid rgba(255, 200, 80, 80);
+    border-radius: 24dp;
+    padding: 8dp 14dp;
+}
+
+.notify-icon {
+    color: #ffe082;
+    font-size: 14dp;
+    flex-shrink: 0;
+}
+
+.notify-text {
+    color: #ddd;
+    font-size: 13dp;
+    flex-grow: 1;
+}
+
+.notify-text strong {
+    color: #ffe082;
+}
+
+button {
+    padding: 5dp 12dp;
+    border-radius: 12dp;
+    font-size: 12dp;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.notify-btn-open {
+    background: #2e6b1b;
+    color: white;
+}
+
+.notify-btn-open:hover {
+    background: #3a8a24;
+}
+
+.notify-btn-dismiss {
+    background: transparent;
+    color: #777;
+    padding: 5dp 8dp;
+}
+
+.notify-btn-dismiss:hover {
+    color: #ccc;
+    background: rgba(255,255,255,20);
+}

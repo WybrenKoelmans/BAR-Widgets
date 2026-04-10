@@ -1,0 +1,15 @@
+<rml>
+    <head>
+        <title>Widget Presets Notify</title>
+        <link rel="stylesheet" href="gui_widgets_presets_notify.rcss" type="text/rcss" />
+    </head>
+
+    <body id="widget-presets-notify" data-model="widget_presets_model">
+        <div class="notify-pill">
+            <div class="notify-icon">&#x25B6;</div>
+            <div class="notify-text">State: <strong>{{gameStateLabel}}</strong> — load a preset?</div>
+            <button class="notify-btn-open" data-event-click="openPanel()">Open presets</button>
+            <button class="notify-btn-dismiss" data-event-click="dismissBanner()">&#x2715;</button>
+        </div>
+    </body>
+</rml>

@@ -1,0 +1,119 @@
+<rml>
+
+    <head>
+        <title>Widget Presets</title>
+        <link rel="stylesheet" href="gui_widgets_presets.rcss" type="text/rcss" />
+    </head>
+
+    <body id="widget-presets-widget">
+        <div id="widget-container" data-model="widget_presets_model" class="panel">
+            <handle move_target="#document">
+                <div class="navbar">
+                    <h1 class="text-white">Widget Presets</h1>
+                    <div class="navbar-right">
+                        <div class="state-badge" data-class-state-replay="gameState == 'replay'"
+                            data-class-state-spectator="gameState == 'spectator'"
+                            data-class-state-player="gameState == 'player'">
+                            {{gameStateLabel}}
+                        </div>
+                        <button class="btn-close" data-event-click="closePanel()">x</button>
+                    </div>
+                </div>
+            </handle>
+
+            <div class="content">
+                <!-- State change notification banner -->
+                <div class="state-change-banner" data-if="showStateChangeBanner">
+                    <div class="banner-text">
+                        Game state changed to <strong>{{gameStateLabel}}</strong>. Load a preset?
+                    </div>
+                    <div class="banner-actions">
+                        <button class="btn-dismiss" data-event-click="dismissBanner()">Dismiss</button>
+                    </div>
+                </div>
+
+                <!-- Preset List -->
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Presets</h3>
+                    </div>
+                    <div class="preset-list scrollable">
+                        <div data-for="preset : presets" data-repeat class="preset-row"
+                            data-class-active="activePresetName == preset.name"
+                            data-class-partial="preset.matchPercent > 50 && preset.matchPercent < 100 && activePresetName != preset.name">
+                            <div class="preset-info" data-event-click="loadPreset(preset.name)">
+                                <div class="preset-name">
+                                    {{preset.name}}
+                                </div>
+                                <div class="preset-meta">
+                                    {{preset.widgetCount}} widgets
+                                    <span class="match-badge"
+                                        data-class-match-full="preset.matchPercent == 100"
+                                        data-class-match-partial="preset.matchPercent > 50 && preset.matchPercent < 100"
+                                        data-class-match-low="preset.matchPercent <= 50">
+                                        {{preset.matchPercent}}% match
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="preset-actions">
+                                <button class="btn-icon btn-update"
+                                    data-event-click="updatePreset(preset.name)"
+                                    title="Update preset with current widgets">
+                                    &#x2191;
+                                </button>
+                                <button class="btn-icon btn-delete"
+                                    data-event-click="deletePreset(preset.name)"
+                                    title="Delete preset">
+                                    &#x2717;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auto-switch setting -->
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Auto-Switch</h3>
+                    </div>
+                    <div class="auto-switch-grid">
+                        <div class="auto-switch-row">
+                            <span class="auto-label">Player:</span>
+                            <select data-value="autoPlayerPreset" data-event-change="savePlayerPreset()">
+                                <option value="">None</option>
+                                <option data-for="preset : presets" data-repeat data-value="preset.name">{{preset.name}}</option>
+                            </select>
+                        </div>
+                        <div class="auto-switch-row">
+                            <span class="auto-label">Spectator:</span>
+                            <select data-value="autoSpectatorPreset" data-event-change="saveSpectatorPreset()">
+                                <option value="">None</option>
+                                <option data-for="preset : presets" data-repeat data-value="preset.name">{{preset.name}}</option>
+                            </select>
+                        </div>
+                        <div class="auto-switch-row">
+                            <span class="auto-label">Replay:</span>
+                            <select data-value="autoReplayPreset" data-event-change="saveReplayPreset()">
+                                <option value="">None</option>
+                                <option data-for="preset : presets" data-repeat data-value="preset.name">{{preset.name}}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Preset -->
+                <div class="section new-preset-section">
+                    <div class="new-preset-row">
+                        <input type="text" placeholder="New preset name..." data-value="newPresetName" />
+                        <button class="btn-save" data-event-click="saveNewPreset(newPresetName)">Save Current</button>
+                    </div>
+                </div>
+
+                <!-- Status message -->
+                <div class="status-bar" data-if="statusMessage != ''">
+                    {{statusMessage}}
+                </div>
+            </div>
+        </div>
+    </body>
+</rml>
