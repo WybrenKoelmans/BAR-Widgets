@@ -434,9 +434,9 @@ function widget:Update(dt)
 
         fpsSamples[#fpsSamples + 1] = fps
 
-        log(string.format("Sample %d/%d: FPS=%d  CPU=%.0f%%",
-            #fpsSamples, config.sampleCount,
-            fps, (cpu or 0) * 100))
+        -- log(string.format("Sample %d/%d: FPS=%d  CPU=%.0f%%",
+        --     #fpsSamples, config.sampleCount,
+        --     fps, (cpu or 0) * 100))
 
         -- Once we have enough samples, evaluate and decide
         if #fpsSamples >= config.sampleCount then
