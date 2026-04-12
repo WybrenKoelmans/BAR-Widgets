@@ -128,6 +128,11 @@ for _, unitDef in ipairs(UnitDefs) do
     table.insert(allUnits, def)
 end
 table.sort(allUnits, function(a, b)
+    local aHasUnitPic = string.find(a.imgPath, "unitpics", 1, true) ~= nil
+    local bHasUnitPic = string.find(b.imgPath, "unitpics", 1, true) ~= nil
+    if aHasUnitPic ~= bHasUnitPic then
+        return aHasUnitPic
+    end
     return a.humanName < b.humanName
 end)
 
@@ -202,6 +207,11 @@ local init_model = {
             end
         end
         table.sort(filtered, function(a, b)
+            local aHasUnitPic = string.find(a.imgPath, "unitpics", 1, true) ~= nil
+            local bHasUnitPic = string.find(b.imgPath, "unitpics", 1, true) ~= nil
+            if aHasUnitPic ~= bHasUnitPic then
+                return aHasUnitPic
+            end
             return a.humanName < b.humanName
         end)
         dm_handle.units = filtered
