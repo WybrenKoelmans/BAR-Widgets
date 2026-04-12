@@ -193,16 +193,18 @@ local function collectUnitData()
 								end
 							end
 
-							-- Aggregate for overview, grouped by (builder defID, build target defID)
-							local overviewKey = defID .. "_" .. buildTargetDefID
+							-- Determine display name for grouping
+							local cache = unitDefCache[defID]
+							local displayName
+							if buildTargetDefID ~= 0 and unitDefCache[buildTargetDefID] then
+								displayName = unitDefCache[buildTargetDefID].name
+							else
+								displayName = cache and cache.name or "Unknown"
+							end
+
+							-- Aggregate for overview, grouped by display name
+							local overviewKey = displayName
 							if not overview[overviewKey] then
-								local cache = unitDefCache[defID]
-								local displayName
-								if buildTargetDefID ~= 0 and unitDefCache[buildTargetDefID] then
-									displayName = unitDefCache[buildTargetDefID].name
-								else
-									displayName = cache and cache.name or "Unknown"
-								end
 								overview[overviewKey] = {
 									name = displayName,
 									category = cache and cache.category or "Other",
