@@ -22,6 +22,17 @@ local spGetUnitIsDead = Spring.GetUnitIsDead
 local spGetUnitIsBeingBuilt = Spring.GetUnitIsBeingBuilt
 local myTeamID = Spring.GetMyTeamID
 
+local mapSizeX = Game.mapSizeX
+local mapSizeZ = Game.mapSizeZ
+
+--------------------------------------------------------------------------------
+-- Minimap rotation support (handles Alt+O and other orientation changes)
+--------------------------------------------------------------------------------
+local _minimap_utils              = VFS.Include("luaui/Include/minimap_utils.lua")
+local getCurrentMiniMapRotation   = _minimap_utils.getCurrentMiniMapRotationOption
+local ROTATION                    = _minimap_utils.ROTATION
+_minimap_utils = nil  -- release reference; we kept what we need
+
 local idleConstructors = {} -- { [unitID] = {x, z, seenFrame} }
 local blipLifetime = 30 -- frames (1 second at 30fps)
 local blipPeriod = 60   -- frames (2 seconds at 30fps)
@@ -89,9 +100,23 @@ function widget:DrawInMiniMap(sizeX, sizeY)
   if not next(idleConstructors) then return end
   local gf = Spring.GetGameFrame()
   gl.PushMatrix()
-  -- Transform world coordinates to minimap space
-  gl.Translate(0, sizeY, 0)
-  gl.Scale(sizeX / Game.mapSizeX, -sizeY / Game.mapSizeZ, 1)
+  -- Map world (x, z) coords into minimap pixel space (0..sizeX, 0..sizeY), accounting for rotation (Alt+O)
+  local rot = getCurrentMiniMapRotation() or ROTATION.DEG_0
+  if rot == ROTATION.DEG_0 then
+    gl.Translate(0, sizeY, 0)
+    gl.Scale(sizeX / mapSizeX, -sizeY / mapSizeZ, 1)
+  elseif rot == ROTATION.DEG_90 then
+    gl.Scale(-sizeX / mapSizeZ, sizeY / mapSizeX, 1)
+    gl.Rotate(90, 0, 0, 1)
+  elseif rot == ROTATION.DEG_180 then
+    gl.Translate(sizeX, 0, 0)
+    gl.Scale(sizeX / mapSizeX, sizeY / mapSizeZ, 1)
+    gl.Rotate(180, 0, 1, 0)
+  elseif rot == ROTATION.DEG_270 then
+    gl.Translate(sizeX, sizeY, 0)
+    gl.Scale(-sizeX / mapSizeZ, sizeY / mapSizeX, 1)
+    gl.Rotate(-90, 0, 0, 1)
+  end
   gl.PointSize(4)
   gl.BeginEnd(GL.POINTS, function()
     for unitID, data in pairs(idleConstructors) do
