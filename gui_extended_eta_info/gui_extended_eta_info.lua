@@ -171,42 +171,6 @@ local function drawCostText(metalLeft, energyLeft, yoffset)
 	font:End()
 end
 
-local function drawAdvancedText(metalLeft, energyLeft, progress, defID, teamID, yoffset)
-	local labelColor = "\255\192\192\192"
-
-	local totalMetal = unitMetalCost[defID] or 0
-	local totalEnergy = unitEnergyCost[defID] or 0
-
-	-- compute ETA from team energy income/expense if available
-	local eIncome, eExpense = 0, 0
-	if teamID then
-		_, _, _, eIncome, eExpense = spGetTeamResources(teamID, "energy")
-		eIncome = eIncome or 0
-		eExpense = eExpense or 0
-	end
-
-	glTranslate(0, yoffset, 10)
-	glBillboard()
-	font:Begin()
-	local fontSize = 6
-	local lineHeight = fontSize * 1.6
-	local progPct = mathFloor((progress or 0) * 100)
-
-	local lines = {
-		labelColor .. "Prog: " .. "\255\255\255\255" .. progPct .. "%",
-		labelColor .. "Metal: " .. "\255\255\255\255" .. formatCount(metalLeft) .. " / " .. formatCount(totalMetal),
-		labelColor .. "Energy: " .. energyColorStr .. formatCount(energyLeft) .. " / " .. formatCount(totalEnergy),
-	}
-
-	-- anchor first (top) line at y=0, print subsequent lines below
-	for i = 1, #lines do
-		local y = -((i - 1) * lineHeight)
-		font:Print(lines[i], 0, y, fontSize, "co")
-	end
-
-	font:End()
-end
-
 function widget:DrawWorld()
 	if Spring.IsGUIHidden() then return end
 
@@ -225,12 +189,7 @@ function widget:DrawWorld()
 					glColor(1, 1, 1, 0.1)
 					glStateReady = true
 				end
-				if shift then
-					glDrawFuncAtUnit(unitID, false, drawAdvancedText, info.metalLeft, info.energyLeft, info.progress or 0,
-						info.defID, info.team, info.yoffset)
-				else
-					glDrawFuncAtUnit(unitID, false, drawCostText, info.metalLeft, info.energyLeft, info.yoffset)
-				end
+				glDrawFuncAtUnit(unitID, false, drawCostText, info.metalLeft, info.energyLeft, info.yoffset)
 			end
 		end
 	end
