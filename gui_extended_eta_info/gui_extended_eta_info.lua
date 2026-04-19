@@ -3,7 +3,7 @@ local widget = widget ---@type Widget
 function widget:GetInfo()
 	return {
 		name = "Extended ETA Info",
-		desc = "Shows remaining metal cost below the build ETA",
+		desc = "Shows remaining resource cost below the build ETA",
 		author = "uBdead",
 		date = "2026-04-18",
 		license = "GNU GPL, v2 or later",
@@ -19,6 +19,9 @@ local spGetUnitAllyTeam = Spring.GetUnitAllyTeam
 local spGetSpectatingState = Spring.GetSpectatingState
 local spec, fullview = spGetSpectatingState()
 local myAllyTeam = Spring.GetMyAllyTeamID()
+local spGetModKeyState = Spring.GetModKeyState
+local spGetTeamResources = Spring.GetTeamResources
+local spGetUnitTeam = Spring.GetUnitTeam
 
 local glColor = gl.Color
 local glDepthTest = gl.DepthTest
@@ -27,18 +30,21 @@ local glBillboard = gl.Billboard
 local glTranslate = gl.Translate
 
 local mathCeil = math.ceil
+local mathFloor = math.floor
 
 local font
 
-local unitInfo = {} -- unitID -> { metalLeft, yoffset, defID }
+local unitInfo = {} -- unitID -> { metalLeft, energyLeft, yoffset, defID, progress, team }
 local maxDrawDist = 750000
 local lastGameUpdate = spGetGameSeconds()
 
 local unitHeight = {}
 local unitMetalCost = {}
+local unitEnergyCost = {}
 for udid, unitDef in pairs(UnitDefs) do
 	unitHeight[udid] = unitDef.height
-	unitMetalCost[udid] = unitDef.metalCost
+	unitMetalCost[udid] = unitDef.metalCost or 0
+	unitEnergyCost[udid] = unitDef.energyCost or 0
 end
 
 function widget:ViewResize()
@@ -50,9 +56,12 @@ local function addUnit(unitID, unitDefID)
 	local isBuilding, buildProgress = spGetUnitIsBeingBuilt(unitID)
 	if not isBuilding then return end
 	unitInfo[unitID] = {
-		metalLeft = mathCeil((1 - buildProgress) * unitMetalCost[unitDefID]),
-		yoffset = unitHeight[unitDefID] + 14,
+		metalLeft = mathCeil((1 - buildProgress) * (unitMetalCost[unitDefID] or 0)),
+		energyLeft = mathCeil((1 - buildProgress) * (unitEnergyCost[unitDefID] or 0)),
+		yoffset = unitHeight[unitDefID] - 5,
 		defID = unitDefID,
+		progress = buildProgress,
+		team = spGetUnitTeam(unitID),
 	}
 end
 
@@ -74,7 +83,8 @@ end
 
 function widget:Update(dt)
 	local gs = spGetGameSeconds()
-	if gs == lastGameUpdate then return end
+	-- throttle updates to at most once per second
+	if gs - lastGameUpdate < 1 then return end
 	lastGameUpdate = gs
 
 	local toRemove = {}
@@ -85,7 +95,10 @@ function widget:Update(dt)
 			removeCount = removeCount + 1
 			toRemove[removeCount] = unitID
 		else
-			info.metalLeft = mathCeil((1 - buildProgress) * unitMetalCost[info.defID])
+			info.metalLeft = mathCeil((1 - buildProgress) * (unitMetalCost[info.defID] or 0))
+			info.energyLeft = mathCeil((1 - buildProgress) * (unitEnergyCost[info.defID] or 0))
+			info.progress = buildProgress
+			info.team = info.team or spGetUnitTeam(unitID)
 		end
 	end
 	for i = 1, removeCount do
@@ -119,12 +132,78 @@ function widget:UnitFinished(unitID)
 	unitInfo[unitID] = nil
 end
 
-local function drawMetalText(metalLeft, yoffset)
+local function trimTrailingZeros(s)
+	s = s:gsub("%.?0+$", "")
+	return s
+end
+
+local function formatCount(n)
+	if n == nil then return "0" end
+	local sign = n < 0 and "-" or ""
+	local absn = math.abs(n)
+	if absn >= 1e12 then
+		return sign .. trimTrailingZeros(string.format("%.1f", absn / 1e12)) .. "T"
+	elseif absn >= 1e9 then
+		return sign .. trimTrailingZeros(string.format("%.1f", absn / 1e9)) .. "B"
+	elseif absn >= 1e6 then
+		return sign .. trimTrailingZeros(string.format("%.1f", absn / 1e6)) .. "M"
+	elseif absn >= 1e3 then
+		return sign .. trimTrailingZeros(string.format("%.1f", absn / 1e3)) .. "K"
+	else
+		-- Round small numbers to nearest integer for cleaner display
+		return sign .. tostring(mathFloor(absn + 0.5))
+	end
+end
+
+-- energy color: prefer project YellowStr, fallback to top-bar yellow
+local energyColorStr = YellowStr or "\255\255\230\80"
+
+local function drawCostText(metalLeft, energyLeft, yoffset)
 	glTranslate(0, yoffset, 10)
 	glBillboard()
-	glTranslate(0, -3, 0)
 	font:Begin()
-	font:Print("\255\192\192\192M: \255\180\180\255" .. metalLeft, 0, -10, 6, "co")
+	local mText = formatCount(metalLeft)
+	local eText = formatCount(energyLeft)
+	local fontSize = 6
+	-- anchor first (only) line at the top (y=0)
+	font:Print("\255\192\192\192M: \255\180\180\255" .. mText .. " \255\192\192\192E: " .. energyColorStr .. eText, 0, 0,
+		fontSize, "co")
+	font:End()
+end
+
+local function drawAdvancedText(metalLeft, energyLeft, progress, defID, teamID, yoffset)
+	local labelColor = "\255\192\192\192"
+
+	local totalMetal = unitMetalCost[defID] or 0
+	local totalEnergy = unitEnergyCost[defID] or 0
+
+	-- compute ETA from team energy income/expense if available
+	local eIncome, eExpense = 0, 0
+	if teamID then
+		_, _, _, eIncome, eExpense = spGetTeamResources(teamID, "energy")
+		eIncome = eIncome or 0
+		eExpense = eExpense or 0
+	end
+
+	glTranslate(0, yoffset, 10)
+	glBillboard()
+	font:Begin()
+	local fontSize = 6
+	local lineHeight = fontSize * 1.6
+	local progPct = mathFloor((progress or 0) * 100)
+
+	local lines = {
+		labelColor .. "Prog: " .. "\255\255\255\255" .. progPct .. "%",
+		labelColor .. "Metal: " .. "\255\255\255\255" .. formatCount(metalLeft) .. " / " .. formatCount(totalMetal),
+		labelColor .. "Energy: " .. energyColorStr .. formatCount(energyLeft) .. " / " .. formatCount(totalEnergy),
+	}
+
+	-- anchor first (top) line at y=0, print subsequent lines below
+	for i = 1, #lines do
+		local y = -((i - 1) * lineHeight)
+		font:Print(lines[i], 0, y, fontSize, "co")
+	end
+
 	font:End()
 end
 
@@ -133,6 +212,7 @@ function widget:DrawWorld()
 
 	local glStateReady = false
 	local cx, cy, cz = Spring.GetCameraPosition()
+	local _, _, _, shift = spGetModKeyState()
 
 	for unitID, info in pairs(unitInfo) do
 		local ux, uy, uz = spGetUnitViewPosition(unitID)
@@ -145,7 +225,12 @@ function widget:DrawWorld()
 					glColor(1, 1, 1, 0.1)
 					glStateReady = true
 				end
-				glDrawFuncAtUnit(unitID, false, drawMetalText, info.metalLeft, info.yoffset)
+				if shift then
+					glDrawFuncAtUnit(unitID, false, drawAdvancedText, info.metalLeft, info.energyLeft, info.progress or 0,
+						info.defID, info.team, info.yoffset)
+				else
+					glDrawFuncAtUnit(unitID, false, drawCostText, info.metalLeft, info.energyLeft, info.yoffset)
+				end
 			end
 		end
 	end
