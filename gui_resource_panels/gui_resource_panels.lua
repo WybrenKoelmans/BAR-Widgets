@@ -16,6 +16,7 @@ end
 -- Localized Spring API
 --------------------------------------------------------------------------------
 local spGetMapDrawMode = Spring.GetMapDrawMode
+local spGetSelectedUnits = Spring.GetSelectedUnits
 local spGetMyTeamID = Spring.GetMyTeamID
 local spGetTeamUnits = Spring.GetTeamUnits
 local spGetUnitDefID = Spring.GetUnitDefID
@@ -106,6 +107,70 @@ local unitDefCache = {}
 local lastUpdateFrame = -999
 local lastOverviewUpdateFrame = -999
 local chobbyInterface = false
+
+-- Auto-resource-mode option state
+local optAutoResourceMode = true
+local autoSwitchedToResource = false -- true when we triggered the metal map
+local prevDrawModeBeforeAuto = "normal" -- mode to restore on deselect
+local optionsRegistered = false
+
+--------------------------------------------------------------------------------
+-- Options (WG['options'])
+--------------------------------------------------------------------------------
+local function registerOptions()
+	if not WG['options'] or not WG['options'].addOptions then
+		return false
+	end
+
+	WG['options'].addOptions({
+		{ id = "resource_panels_label", name = "Resource Panels", type = "label" },
+		{ id = "resource_panels_spacer" },
+		{ id = "resource_panels_auto_resource_mode",
+			name = "Auto Resource Mode on Constructor Selected",
+			type = "bool",
+			value = optAutoResourceMode,
+			description = "Automatically switch to Resource Mode when a construction unit is selected.",
+			onchange = function(_, value)
+				optAutoResourceMode = value
+				-- If disabled while we had auto-switched, restore the prior mode
+				if not value and autoSwitchedToResource then
+					autoSwitchedToResource = false
+				local currentMode = spGetMapDrawMode() or "normal"
+				if prevDrawModeBeforeAuto ~= currentMode then
+					if currentMode == 'metal' then
+						Spring.SendCommands("ShowStandard")
+					end
+					if prevDrawModeBeforeAuto == 'los' then
+						Spring.SendCommands("togglelos")
+						end
+					end
+					prevDrawModeBeforeAuto = "normal"
+				end
+				-- If enabled, check current selection immediately
+				if value then
+					local sel = spGetSelectedUnits()
+					if sel then
+						widget:SelectionChanged(sel)
+					end
+				end
+			end,
+		},
+	})
+
+	optionsRegistered = true
+	return true
+end
+
+local function removeOptions()
+	if WG['options'] and WG['options'].removeOptions then
+		WG['options'].removeOptions({
+			"resource_panels_label",
+			"resource_panels_spacer",
+			"resource_panels_auto_resource_mode",
+		})
+	end
+	optionsRegistered = false
+end
 
 --------------------------------------------------------------------------------
 -- UnitDef cache (built once)
@@ -616,9 +681,26 @@ end
 --------------------------------------------------------------------------------
 -- Widget callins
 --------------------------------------------------------------------------------
+function widget:GetConfigData()
+	return {
+		autoResourceMode = optAutoResourceMode,
+	}
+end
+
+function widget:SetConfigData(data)
+	if data and data.autoResourceMode ~= nil then
+		optAutoResourceMode = data.autoResourceMode == true
+	end
+end
+
 function widget:Initialize()
 	buildUnitDefCache()
 	widget:ViewResize()
+	registerOptions()
+end
+
+function widget:Shutdown()
+	removeOptions()
 end
 
 function widget:ViewResize()
@@ -641,6 +723,52 @@ function widget:Update(dt)
 	local newMode = spGetMapDrawMode()
 	isResourceMode = (newMode == 'metal')
 	screenmode = newMode
+
+	if not optionsRegistered then
+		registerOptions()
+	end
+end
+
+function widget:SelectionChanged(selectedUnits)
+	if not optAutoResourceMode then return end
+
+	local hasConstructor = false
+	for i = 1, #selectedUnits do
+		local defID = spGetUnitDefID(selectedUnits[i])
+		if defID then
+			local cache = unitDefCache[defID]
+			if cache and cache.category == "Constructor" then
+				hasConstructor = true
+				break
+			end
+		end
+	end
+
+	if hasConstructor and not autoSwitchedToResource then
+		prevDrawModeBeforeAuto = spGetMapDrawMode() or "normal"
+		if prevDrawModeBeforeAuto ~= 'metal' then
+			-- Exit LOS mode first if active, then show metal map
+			if prevDrawModeBeforeAuto == 'los' then
+				Spring.SendCommands("togglelos")
+			end
+			Spring.SendCommands("ShowMetalMap")
+		end
+		autoSwitchedToResource = true
+	elseif not hasConstructor and autoSwitchedToResource then
+		autoSwitchedToResource = false
+		local currentMode = spGetMapDrawMode() or "normal"
+		if prevDrawModeBeforeAuto ~= currentMode then
+			-- First exit metal if needed
+			if currentMode == 'metal' then
+				Spring.SendCommands("ShowStandard")
+			end
+			-- Re-enter LOS if that was the prior state
+			if prevDrawModeBeforeAuto == 'los' then
+				Spring.SendCommands("togglelos")
+			end
+		end
+		prevDrawModeBeforeAuto = "normal"
+	end
 end
 
 function widget:DrawWorld()
