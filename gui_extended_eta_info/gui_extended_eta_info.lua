@@ -166,7 +166,7 @@ local function drawCostText(metalLeft, energyLeft, yoffset)
 	local eText = formatCount(energyLeft)
 	local fontSize = 6
 	-- anchor first (only) line at the top (y=0)
-	font:Print("\255\192\192\192M: \255\180\180\255" .. mText .. " \255\192\192\192E: " .. energyColorStr .. eText, 0, 0,
+	font:Print("\255\255\255\192M: \255\255\255\255" .. mText .. " \255\255\255\192E: " .. energyColorStr .. eText, 0, 0,
 		fontSize, "co")
 	font:End()
 end
