@@ -1,0 +1,9 @@
+{
+	"id": "cmd_squads",
+	"display_name": "Squads",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Selecting a group of units will create a squad, which can be selected as a whole by clicking near them.",
+	"last_updated": "2026-06-17T00:00:00.000Z"
+}
