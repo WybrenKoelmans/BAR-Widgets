@@ -1,0 +1,9 @@
+{
+	"id": "gui_scroll_queue",
+	"display_name": "Scroll Queue",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Use the mouse wheel to add/remove units from the factory build queue while hovering the build menu.",
+	"last_updated": "2026-06-25T00:00:00.000Z"
+}
