@@ -1,4 +1,3 @@
-
 -- luacheck: globals widget RmlUi CMD ---@type Widget
 if not RmlUi then
     return
@@ -7,8 +6,6 @@ end
 -- Cache Spring.* and CMD.* as local variables for optimization
 local spGetAIInfo = Spring.GetAIInfo
 local spGetGameRulesParam = Spring.GetGameRulesParam
-local spUtilitiesShowDevUI = Spring.Utilities and Spring.Utilities.ShowDevUI
-local spI18N = Spring.I18N
 local spGetTeamList = Spring.GetTeamList
 local spGetTeamInfo = Spring.GetTeamInfo
 local spGetPlayerInfo = Spring.GetPlayerInfo
@@ -31,7 +28,7 @@ function widget:GetInfo()
     return {
         name = "uBdev Tools",
         desc = "The ultimate dev toolkit",
-        author = "uBdead",
+        author = "uBdead, Steel",
         date = "2025-10-20",
         license = "GNU GPL, v2 or later",
         layer = 0,
@@ -52,6 +49,7 @@ local drawHandle = nil
 -- Load icontypes table from BAR.sdd/gamedata/icontypes.lua
 local icontypes = VFS.Include("gamedata/icontypes.lua")
 
+--------------------------------------------------------------------------------
 
 local function GetFaction(unitdef)
     local name = unitdef.name
@@ -79,18 +77,6 @@ local favoriteUnitsNames = {
 local favorites = {}
 local nameToDefID = {}
 
-local unitNameToFactoryHumanName = {}
-for _, unitDef in ipairs(UnitDefs) do
-    if unitDef.isFactory then
-        for _, buildOptionID in ipairs(unitDef.buildOptions or {}) do
-            local buildOptionDef = UnitDefs[buildOptionID]
-            if buildOptionDef then
-                unitNameToFactoryHumanName[buildOptionDef.name] = unitDef.translatedHumanName or unitDef.humanName or unitDef.name or "???"
-            end
-        end
-    end
-end
-
 local allUnits = {}
 for _, unitDef in ipairs(UnitDefs) do
     local iconPath = "unitpics/" .. unitDef.name .. ".dds"
@@ -117,7 +103,6 @@ for _, unitDef in ipairs(UnitDefs) do
         faction = GetFaction(unitDef),
         group = group,
         isMobile = unitDef.isBuilding and 0 or 1,
-        factory = unitNameToFactoryHumanName[unitDef.name] or '',
     }
     nameToDefID[unitDef.name] = unitDef.id
 
@@ -139,41 +124,40 @@ end)
 function GetAIName(teamID)
     local _, _, _, name, _, options = spGetAIInfo(teamID)
     local niceName = spGetGameRulesParam('ainame_' .. teamID)
-
     if niceName then
         name = niceName
-
-        if spUtilitiesShowDevUI and spUtilitiesShowDevUI() and options.profile then
-            name = name .. " [" .. options.profile .. "]"
-        end
     end
-
-    return spI18N('ui.playersList.aiName', { name = name })
+    return name or ("AI [" .. teamID .. "]")
 end
 
 local teamList = spGetTeamList()
-local teams = {} -- id -> name
-for _, teamID in ipairs(spGetTeamList()) do
-    local id, leader, isDead, hasAI = spGetTeamInfo(teamID, false)
-    local teamName = spGetPlayerInfo(leader, false)
-    teams[teamID + 1] = hasAI and GetAIName(teamID) or teamName
-end
-for i = 1, #teamList do
-    local id, leader, isDead, hasAI = spGetTeamInfo(teamList[i], false)
-    local teamName = spGetPlayerInfo(leader, false) or "gaia"
-    if teamName then
-        local r,g,b,a = Spring.GetTeamColor(teamList[i])
-        teams[i] = {
-            id = id,
-            name = hasAI and GetAIName(teamList[i]) or teamName,
-            color = (string.format("rgba(%d, %d, %d, %0.2f)", r*255, g*255, b*255, a*255)),
-        }
+local teamsNeedRebuild = true  -- flag to rebuild AI names after game fully loads
+
+local function buildTeams()
+    local teams = {}
+    for i = 1, #teamList do
+        local id, leader, isDead, hasAI = spGetTeamInfo(teamList[i], false)
+        local teamName = spGetPlayerInfo(leader, false) or "gaia"
+        if teamName then
+            local r,g,b,a = Spring.GetTeamColor(teamList[i])
+            teams[i] = {
+                id = id,
+                name = hasAI and GetAIName(teamList[i]) or teamName,
+                color = (string.format("rgba(%d, %d, %d, %0.2f)", r*255, g*255, b*255, a*255)),
+            }
+        end
     end
+    return teams
 end
+
 
 -- Initial data model
 local init_model = {
     debugMode = false,
+    globallosEnabled = false,
+    cheatEnabled = false,
+    godmodeEnabled = false,
+    nocostEnabled = false,
     units = allUnits,
     selectedUnit = '',
     unitsFilterText = '',
@@ -181,8 +165,21 @@ local init_model = {
     unitsFilterFaction = '',
     unitsFilterIsMobile = -1,
     selectedTeamID = spGetMyTeamID(),
-    teams = teams,
+    teams = buildTeams(),
     favorites = favorites,
+    -- Window controls
+    isCollapsed = false,
+    toggleCollapse = function(ev)
+        dm_handle.isCollapsed = not dm_handle.isCollapsed
+    end,
+    closeWidget = function(ev)
+        if document then document:Close() end
+        local ctx = RmlUi.GetContext("shared")
+        if ctx and dm_handle then
+            ctx:RemoveDataModel(MODEL_NAME)
+        end
+        widgetHandler:RemoveWidget(widget)
+    end,
     selectUnit = function(ev, unitName)
         dm_handle.selectedUnit = unitName
     end,
@@ -197,9 +194,8 @@ local init_model = {
             if unit.faction == faction or faction == '' then
                 if unit.techlevel == techLevel or techLevel == 0 then
                     if unit.isMobile == isMobile or isMobile == -1 then
-                        if string.find(string.lower(unit.humanName), lowerFilter, 1, true) 
-                        or string.find(string.lower(unit.name), lowerFilter, 1, true) 
-                        or string.find(string.lower(unit.factory), lowerFilter, 1, true) then
+                        if string.find(string.lower(unit.humanName), lowerFilter, 1, true)
+                        or string.find(string.lower(unit.name), lowerFilter, 1, true) then
                             table.insert(filtered, unit)
                         end
                     end
@@ -221,7 +217,14 @@ local init_model = {
     end,
     updateTeam = function(ev)
         dm_handle.selectedTeamID = ev.parameters.value
-        widget:SendCommand("team " .. ev.parameters.value)
+        -- Don't send "team X" here — that moves you onto the team.
+        -- selectedTeamID is used as the target for give commands only.
+    end,
+    onInputFocus = function()
+        Spring.SDLStartTextInput()
+    end,
+    onInputBlur = function()
+        Spring.SDLStopTextInput()
     end,
 }
 
@@ -236,7 +239,6 @@ function widget:MousePress(x, y, button)
     if button == 3 then
         dm_handle.selectedUnit = ''
         clearDrawHandles()
-
         return false
     end
 
@@ -247,7 +249,6 @@ function widget:MousePress(x, y, button)
     if dm_handle.selectedUnit == '' then
         dm_handle.selectedUnit = ''
         clearDrawHandles()
-
         return false
     end
 
@@ -278,58 +279,51 @@ function widget:Initialize()
         return false
     end
 
-    -- Get the shared RML context
     widget.rmlContext = RmlUi.GetContext("shared")
     if not widget.rmlContext then
         return false
     end
 
-    -- Create and bind the data model
     dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, init_model)
     if not dm_handle then
         return false
     end
 
-    -- Load the RML document
     document = widget.rmlContext:LoadDocument(RML_PATH, widget)
     if not document then
         widget:Shutdown()
         return false
     end
 
+    document:AddEventListener("dragend", function() widget:SavePosition() end)
 
-	document:AddEventListener("dragend", function() widget:SavePosition() end)
-
-    -- Apply styles and show the document
     document:ReloadStyleSheet()
     document:Show()
-	widget:LoadPosition()
-    -- Widget initialized successfully
+    widget:LoadPosition()
 
     return true
 end
 
 function widget:SavePosition()
-    -- Saving widget position
-	if not document then return end
-	local element = document:GetElementById("gui_ubdev-widget")
-	if not element then return end
-	local x = element.offset_left
-	local y = element.offset_top
-	if not x or not y then return end
+    if not document then return end
+    local element = document:GetElementById("gui_ubdev-widget")
+    if not element then return end
+    local x = element.offset_left
+    local y = element.offset_top
+    if not x or not y then return end
 
     local vsx, vsy = spGetViewGeometry()
     if not vsx or not vsy then return end
     local relX = x / vsx
     local relY = y / vsy
-    spSetConfigInt("ubdev_RelativeX", math.floor(relX * 1000)) -- store as int to avoid precision issues
+    spSetConfigInt("ubdev_RelativeX", math.floor(relX * 1000))
     spSetConfigInt("ubdev_RelativeY", math.floor(relY * 1000))
 end
 
 function widget:LoadPosition()
-	if not document then return end
-	local element = document:GetElementById("gui_ubdev-widget")
-	if not element then return end
+    if not document then return end
+    local element = document:GetElementById("gui_ubdev-widget")
+    if not element then return end
     local relX = spGetConfigInt("ubdev_RelativeX", -1)
     local relY = spGetConfigInt("ubdev_RelativeY", -1)
     if relX == -1 or relY == -1 then return end
@@ -346,7 +340,6 @@ end
 
 function widget:PauseAI()
     local allTeams = spGetTeamList()
-    -- Pause or unpause all AI teams
     for _, teamID in ipairs(allTeams) do
         local _, _, _, isAI = spGetTeamInfo(teamID, false)
         if isAI then
@@ -355,17 +348,14 @@ function widget:PauseAI()
                 local states = spGetUnitStates(unitID)
                 if states then
                     if arePausing and states['active'] then
-                        -- Pausing: send WAIT to active units
                         spGiveOrderToUnit(unitID, CMD_WAIT, {}, {})
                     elseif not arePausing and not states['active'] then
-                        -- Unpausing: send WAIT to units that are waiting
                         spGiveOrderToUnit(unitID, CMD_WAIT, {}, {})
                     end
                 end
             end
         end
     end
-    -- Paused or unpaused all AI teams
     arePausing = not arePausing
 end
 
@@ -383,37 +373,41 @@ function widget:SendCommand(command)
 end
 
 function widget:Shutdown()
-    -- Shutting down widget...
-
-    -- Clean up data model
+    Spring.SDLStopTextInput()
     if widget.rmlContext and dm_handle then
         widget.rmlContext:RemoveDataModel(MODEL_NAME)
         dm_handle = nil
     end
 
-    -- Close document
     if document then
         document:Close()
         document = nil
     end
 
     widget.rmlContext = nil
-
     clearDrawHandles()
-
-    -- Shutdown complete
 end
 
+local teamsRebuildTick = 0
+
 function widget:Update()
+    -- Rebuild AI team names once after ~3 seconds — spGetGameRulesParam
+    -- 'ainame_X' is not populated at module load time, only after game starts.
+    if teamsNeedRebuild and dm_handle then
+        teamsRebuildTick = teamsRebuildTick + 1
+        if teamsRebuildTick >= 90 then
+            dm_handle.teams = buildTeams()
+            teamsNeedRebuild = false
+        end
+    end
+
     if dm_handle then
         if dm_handle.selectedUnit ~= '' then
             local defID = nameToDefID[dm_handle.selectedUnit]
-            -- get the mouse position in world
             local mx, my = spGetMouseState()
             local type, pos = spTraceScreenRay(mx, my, true)
 
             if type == 'ground' then
-                -- Pass prevHandle as updateID and WIDGET_NAME as ownerID
                 local handle = WG.DrawUnitShapeGL4(defID, pos[1], pos[2], pos[3], 0, 0.6, dm_handle.selectedTeamID, 0.0, 0.0, drawHandle)
                 drawHandle = handle
             else
@@ -425,7 +419,30 @@ function widget:Update()
     end
 end
 
--- Widget functions callable from RML
+function widget:SelectionChanged(selectedUnits)
+    if not dm_handle then return end
+    if selectedUnits and #selectedUnits > 0 then
+        local teamID = Spring.GetUnitTeam(selectedUnits[1])
+        if teamID then
+            dm_handle.selectedTeamID = teamID
+        end
+    end
+end
+
+function widget:GameStart()
+    teamsNeedRebuild = true
+    teamsRebuildTick = 0
+end
+
+function widget:RecvLuaMsg(message, playerID)
+    if not document then return end
+    if message:sub(1, 19) == 'LobbyOverlayActive1' then
+        document:Hide()
+    elseif message:sub(1, 19) == 'LobbyOverlayActive0' then
+        document:Show()
+    end
+end
+
 function widget:Reload()
     widget:Shutdown()
     widget:Initialize()

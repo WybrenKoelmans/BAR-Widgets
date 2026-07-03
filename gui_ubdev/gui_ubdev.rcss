@@ -162,6 +162,11 @@ scrollbarvertical sliderbar {
     background: rgba(40, 49, 35, 225);
 }
 
+.content {
+    border-top: 3dp rgba(40, 49, 35, 225);
+    padding: 12dp;
+}
+
 .content > * {
     margin-bottom: 6dp;
 }
@@ -177,7 +182,7 @@ button {
     border-radius: 4dp;
     background: #333333;
     color: white;
-    font-size: 12dp;
+    font-size: 14dp;
     cursor: pointer;
 
     transition: background 0.1s;
@@ -208,7 +213,6 @@ select {
     color: white;
     font-size: 14dp;
     width: 100dp;
-    z-index: 10;
 }
 
 button.danger {
@@ -218,18 +222,6 @@ button.danger {
 selectbox {
     background-color: #222;
     color: white;
-    z-index: 10;
-    overflow: visible;
-}
-
-.commands {
-    background-color: rgba(0,0,0,128);
-    padding: 12dp;
-}
-
-.units {
-    padding: 16dp;
-    padding-top: 0;
 }
 
 selectarrow {
@@ -240,24 +232,9 @@ selectarrow {
 
 option {
     padding: 2dp 6dp;
-    color: white;
-    white-space: nowrap;
-    width: 300dp;
-    cursor: pointer;
-    background-color: #111;
-    border-bottom: 1dp #222;
-}
-
-option:hover {
-    font-weight: bold;
-}
-/* Am I crazy or why doesn't this work?
-option:nth-of-type(even) {
     background-color: #222;
+    color: white;
 }
-option:nth-of-type(odd) {
-    background-color: #333;
-} */
 
 input[type="text"] {
     padding: 6px 8px;
@@ -379,4 +356,149 @@ input[type="range"] sliderprogress {
 .unit-name {
     font-size: 10dp;
     opacity: 0.7;
+}
+
+.collapse-button {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 12dp;
+    cursor: ns-resize;
+}
+
+.collapse-button:hover {
+    background: rgba(0, 0, 0, 100);
+}
+
+.collapse-button.collapsed {
+    background: rgba(255, 255, 255, 25);
+}
+.collapse-button.collapsed:hover {
+    background: rgba(255, 255, 255, 50);
+}
+
+/* --- FIX: ensure <select> dropdown and player list render above unit icons ---
+   RmlUi select option list can be occluded by descendants that set z-index.
+   We force the scrollable unit region into a lower stacking layer and lift
+   the control area (including select) above it.
+*/
+.content { position: relative; }
+
+.scrollable {
+    position: relative;
+    z-index: 0;
+}
+
+/* Lift the FIRST control row (contains the <select>) above the scrollable unit grid.
+   IMPORTANT: Do NOT lift .spread rows, or they will occlude the <select> popup list. */
+.content > .grid {
+    position: relative;
+    z-index: 10;
+}
+
+/* Keep .spread rows in the base stacking layer so the <select> popup can overlay them */
+.content > .spread {
+    position: relative;
+    z-index: 0;
+}
+
+/* Specifically ensure the team <select> and spectator button sit above */
+select {
+    position: relative;
+    z-index: 20;
+}
+
+
+/* ------------------------------------------------------------------
+   FIX: ensure player <select> dropdown renders above ALL controls
+   Reason:
+   - RmlUi <select> popups are layered relative to ancestor stacking
+     contexts, NOT the select element itself.
+   - The unit grid (.scrollable) was already lowered.
+   - Control rows (search + T1/T2/T3) had no stacking context and
+     therefore rendered above the popup.
+   Solution:
+   - Force control rows into the same low stacking layer as the grid.
+------------------------------------------------------------------- */
+
+/* Search bar + T1/T2/T3 row */
+.spread {
+    position: relative;
+    z-index: 0;
+}
+
+
+/* Cheat toggle highlight */
+.cheat-btn.active {
+    background-color: #ff9800;
+    color: #000;
+}
+
+
+/* Global LOS toggle highlight */
+.globallos-btn.active {
+    background-color: #4caf50;
+    color: #000;
+}
+
+
+/* --- Widen player list <select> to prevent name truncation --- */
+select {
+    width: 330px;
+    min-width: 330px;
+}
+
+
+/* Window controls (top-right) */
+.navbar {
+    position: relative;
+}
+
+.window-controls {
+    position: absolute;
+    top: 0dp;
+    right: 0dp;
+    display: flex;
+    gap: 6dp;
+}
+
+.winbtn {
+    width: 34dp;
+    height: 34dp;
+    border-radius: 6dp;
+    font-size: 18dp;
+    line-height: 18dp;
+    text-align: center;
+    padding: 0dp;
+}
+
+.winbtn.minimize {
+    background: rgba(40,40,40,0.85);
+}
+
+.winbtn.close {
+    background: rgba(120,30,30,0.85);
+}
+
+/* Minimized state (matches known-good fix4 behavior) */
+.ubdev-root.collapsed .grid {
+    max-height: 120dp;   /* stop around spectator row */
+    overflow: hidden;
+}
+
+.ubdev-collapsible.collapsed {
+    display: none;
+}
+
+
+.godmode-btn.active {
+    background-color: #9c27b0;
+    color: #fff;
+}
+
+
+.nocost-btn.active {
+    background-color: #03a9f4;
+    color: #000;
 }

@@ -5,19 +5,22 @@
         <link rel="stylesheet" href="gui_ubdev.rcss" type="text/rcss" />
     </head>
 
-    <body id="gui_ubdev-widget">
+    <body id="gui_ubdev-widget" class="ubdev-root" data-class-collapsed="isCollapsed">
         <div id="widget-container" data-model="gui_ubdev_model" class="panel">
             <!-- Small floating debug buttons -->
             <!-- <div class="debug-controls">
-                <button onclick="widget:Reload()" title="Reload Widget">r</button>
+                <button class="globallos-btn" data-class-active="globallosEnabled" onclick="widget:Reload()" title="Reload Widget">r</button>
                 <button onclick="widget:ToggleDebugger()" title="Toggle Debugger">d</button>
             </div> -->
             <handle move_target="#document">
                 <div class="navbar">
                     <h1 class="text-white">uBdev</h1>
+                    <div class="window-controls">
+                        <button class="winbtn close" data-event-click="closeWidget()" title="Close">X</button>
+                    </div>
                 </div>
             </handle>
-            <div class="content give">
+            <div class="content give ubdev-collapsible" data-class-collapsed="isCollapsed">
                 <div class="grid commands">
                     <button onclick="widget:SendCommand('cheat')">cheat</button>
                     <button onclick="widget:SendCommand('globallos')">global los</button>
@@ -32,12 +35,16 @@
                         <option data-for="t : teams" data-value="t.id" data-style-color="t.color">{{t.name}}</option>
                     </select>
                     <button class="danger" onclick="widget:SendCommand('spectator')">spectator</button>
+                    <button onclick="widget:SendCommand('pause')">II</button>
+                    <button onclick="widget:SendCommand('setspeed 1')">></button>
+                    <button onclick="widget:SendCommand('setspeed 20')">>>></button>
                 </div>
                 <div class="units">
                     <div class="spread">
                         <div class="control">
                             <input type="text" placeholder="Filter units..." data-value="unitsFilterText"
-                                data-event-change="filterUnits(unitsFilterText)" />
+                                data-event-change="filterUnits(unitsFilterText)" data-event-focus="onInputFocus()"
+                                data-event-blur="onInputBlur()" />
                             <button
                                 data-event-click="unitsFilterText = ''; unitsFilterTechLevel=0; unitsFilterFaction=''; unitsFilterIsMobile=-1; filterUnits(unitsFilterText, unitsFilterTechLevel, unitsFilterFaction, unitsFilterIsMobile)">x</button>
                         </div>
@@ -48,7 +55,7 @@
                             <button onclick="widget:SendCommand('luarules wreckunits')">
                                 <img src="/icons/bot_t1_tinyworker.png" alt="Wreck all units" />
                             </button>
-                            <button onclick="widget:SendCommand('remove')">
+                            <button onclick="widget:SendCommand('luarules removeunits')">
                                 <img src="/icons/mine.png" alt="Remove all units" />
                             </button>
                         </div>
@@ -113,6 +120,7 @@
                     </div>
                 </div>
             </div>
+            <div class="collapse-button" data-event-click="toggleCollapse()" title="Minimize" data-class-collapsed="isCollapsed"></div>
         </div>
     </body>
 </rml>
