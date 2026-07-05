@@ -1,0 +1,9 @@
+{
+	"id": "gui_translate_chat",
+	"display_name": "Translate Chat",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Translates incoming chat messages using a local LibreTranslate instance.",
+	"last_updated": "2026-07-04T00:00:00.000Z"
+}
