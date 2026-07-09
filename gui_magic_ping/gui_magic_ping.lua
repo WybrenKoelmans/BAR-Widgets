@@ -61,11 +61,22 @@ function widget:MapDrawCmd(playerID, type, x, y, z, label)
                 label = "Mex Spot"
                 spMarkerAddPoint(x, y, z, label)
                 return true
-            else
-                local featureIDs = spGetFeaturesInCylinder(x, z, scanDistance)
-                for _, featureID in ipairs(featureIDs) do
-                    local featureDefID = Spring.GetFeatureDefID(featureID)
-                    local featureDef = FeatureDefs[featureDefID]
+            end
+
+            local featureIDs = spGetFeaturesInCylinder(x, z, scanDistance)
+            for _, featureID in ipairs(featureIDs) do
+                local featureDefID = Spring.GetFeatureDefID(featureID)
+                local featureDef = FeatureDefs[featureDefID]
+
+                if featureDef then
+                    -- Check for geo points
+                    if featureDef.geoThermal then
+                        label = "Geo Vent"
+                        spMarkerAddPoint(x, y, z, label)
+                        return true
+                    end
+
+                    -- Fall back to generic feature label
                     label = featureDef.translatedDescription or featureDef.name
                     spMarkerAddPoint(x, y, z, label)
                     return true
