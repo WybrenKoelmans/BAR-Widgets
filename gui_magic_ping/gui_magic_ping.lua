@@ -23,7 +23,10 @@ local spGetFeaturesInCylinder = Spring.GetFeaturesInCylinder
 local spGetTeamInfo = Spring.GetTeamInfo
 local spGetPlayerInfo = Spring.GetPlayerInfo
 local spGetAccountID = Spring.Utilities.GetAccountID
+local spMarkerErasePosition = Spring.MarkerErasePosition
+local spGetSpectatingState = Spring.GetSpectatingState
 
+local myPlayerID = Spring.GetMyPlayerID()
 local gaiaTeamID = Spring.GetGaiaTeamID()
 local defIDtoTranslatedHumanName = {}
 local commanderDefIDs = {}
@@ -69,77 +72,85 @@ local function isPoweruserUnit(unitID)
     return false
 end
 
-function widget:MapDrawCmd(playerID, type, x, y, z, label)
-    -- This callin fires on every client for every player's ping (our own and
-    -- remote ones). We rewrite both the same way: suppress the original blank
-    -- marker (return true) and re-add a labeled one that is local-only and
-    -- cosmetically attributed to the original pinger via playerID.
-    --
-    -- We deliberately never rebroadcast (localOnly is always true):
-    --   * We cannot send a networked marker on another player's behalf, so we
-    --     could not correctly attribute a broadcast for a remote ping anyway.
-    --   * Every client already runs this rewrite independently, so broadcasting
-    --     our own ping would draw a duplicate marker on all other clients.
-    local localOnly = true
-
-    if type == "point" and label == "" then
-        local unitIDs = spGetUnitsInCylinder(x, z, scanDistance)
-
-        if #unitIDs > 0 then
-            for _, unitID in ipairs(unitIDs) do
-                if spGetUnitTeam(unitID) ~= gaiaTeamID then
-                    local unitDefID = spGetUnitDefID(unitID)
-                    local humanName = defIDtoTranslatedHumanName[unitDefID]
-                    if humanName then
-                        if commanderDefIDs[unitDefID] and isPoweruserUnit(unitID) then
-                            label = "giant noob"
-                        else
-                            local isAllied = spIsUnitAllied(unitID)
-                            if isAllied then
-                                label = "Allied " .. humanName
-                            else
-                                label = "Enemy " .. humanName
-                            end
-                        end
-
-                        spMarkerAddPoint(x, y, z, label, localOnly, playerID)
-
-                        return true
+-- Work out the auto-label for a blank ping at (x, z). Returns nil when nothing
+-- recognisable is nearby (in which case the blank ping is left untouched).
+local function resolvePingLabel(x, z)
+    local unitIDs = spGetUnitsInCylinder(x, z, scanDistance)
+    if #unitIDs > 0 then
+        for _, unitID in ipairs(unitIDs) do
+            if spGetUnitTeam(unitID) ~= gaiaTeamID then
+                local unitDefID = spGetUnitDefID(unitID)
+                local humanName = defIDtoTranslatedHumanName[unitDefID]
+                if humanName then
+                    if commanderDefIDs[unitDefID] and isPoweruserUnit(unitID) then
+                        return "giant noob"
+                    elseif spGetSpectatingState() then
+                        -- Spectators have no team, so allied/enemy is meaningless.
+                        return humanName
+                    elseif spIsUnitAllied(unitID) then
+                        return "Allied " .. humanName
+                    else
+                        return "Enemy " .. humanName
                     end
-                end
-            end
-        else
-            local closestMexSpot = WG['resource_spot_finder'].GetClosestMexSpot(x, z)
-            local distanceSqr = math.distance2dSquared(x, z, closestMexSpot.x, closestMexSpot.z)
-            if closestMexSpot and distanceSqr < scanDistance * scanDistance then
-                label = "Mex Spot"
-                spMarkerAddPoint(x, y, z, label, localOnly, playerID)
-                return true
-            end
-
-            local featureIDs = spGetFeaturesInCylinder(x, z, scanDistance)
-            for _, featureID in ipairs(featureIDs) do
-                local featureDefID = Spring.GetFeatureDefID(featureID)
-                local featureDef = FeatureDefs[featureDefID]
-
-                if featureDef then
-                    -- Check for geo points
-                    if featureDef.geoThermal then
-                        label = "Geo Vent"
-                        spMarkerAddPoint(x, y, z, label, localOnly, playerID)
-                        return true
-                    end
-
-                    -- Fall back to generic feature label
-                    label = featureDef.translatedDescription or featureDef.name
-                    spMarkerAddPoint(x, y, z, label, localOnly, playerID)
-                    return true
                 end
             end
         end
+        return nil
     end
 
-    return false
+    local closestMexSpot = WG['resource_spot_finder'].GetClosestMexSpot(x, z)
+    if closestMexSpot then
+        local distanceSqr = math.distance2dSquared(x, z, closestMexSpot.x, closestMexSpot.z)
+        if distanceSqr < scanDistance * scanDistance then
+            return "Mex Spot"
+        end
+    end
+
+    local featureIDs = spGetFeaturesInCylinder(x, z, scanDistance)
+    for _, featureID in ipairs(featureIDs) do
+        local featureDefID = Spring.GetFeatureDefID(featureID)
+        local featureDef = FeatureDefs[featureDefID]
+        if featureDef then
+            if featureDef.geoThermal then
+                return "Geo Vent"
+            end
+            return featureDef.translatedDescription or featureDef.name
+        end
+    end
+
+    return nil
+end
+
+function widget:MapDrawCmd(playerID, type, x, y, z, label)
+    -- Only auto-label blank point pings. Lines, erases and already-labeled pings
+    -- (including our own broadcasts below, which re-enter with a non-empty label)
+    -- pass straight through untouched.
+    if type ~= "point" or label ~= "" then
+        return false
+    end
+
+    local newLabel = resolvePingLabel(x, z)
+    if not newLabel then
+        return false
+    end
+
+    if playerID == myPlayerID then
+        -- Our own ping: broadcast the labeled marker so EVERY player sees it
+        -- (including those without this widget), correctly attributed to us over
+        -- the network. The original blank ping was already networked before this
+        -- callin ran and return-true only hides it locally, so we erase it
+        -- network-wide first to avoid leaving a duplicate on other clients. That
+        -- erase also clears the local relabel that other widget users add below.
+        spMarkerErasePosition(x, y, z)
+        spMarkerAddPoint(x, y, z, newLabel, false)
+    else
+        -- Someone else's ping: relabel locally only, cosmetically attributed to
+        -- the original pinger. We cannot broadcast on their behalf. If they also
+        -- run this widget, their own broadcast (plus erase) supersedes this copy.
+        spMarkerAddPoint(x, y, z, newLabel, true, playerID)
+    end
+
+    return true
 end
 
 function widget:GetConfigData()
