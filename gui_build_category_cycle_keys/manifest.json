@@ -1,0 +1,9 @@
+{
+	"id": "gui_build_category_cycle_keys",
+	"display_name": "Build Category Cycle Keys",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "The Z/X/C/V keys cycle through the selected builder's Economy/Combat/Utility/Production build options.",
+	"last_updated": "2026-07-10T00:00:00.000Z"
+}
