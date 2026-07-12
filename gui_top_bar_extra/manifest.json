@@ -2,8 +2,8 @@
 	"id": "gui_top_bar_extra",
 	"display_name": "Top Bar Extra",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1406718438801543339",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_top_bar_extra/gui_top_bar_extra.lua",
 	"description": "Adds a more detailed resource display.",
 	"last_updated": "2025-10-05T20:06:23.000Z"
 }

@@ -2,8 +2,8 @@
 	"id": "gui_adaptive_graphics",
 	"display_name": "Adaptive Graphics",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1491490751320690689",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_adaptive_graphics/gui_adaptive_graphics.lua",
 	"description": "Adjusts graphics settings based on performance.",
 	"last_updated": "2026-04-07T17:45:38.000Z"
 }

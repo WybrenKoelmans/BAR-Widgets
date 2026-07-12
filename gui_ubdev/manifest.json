@@ -2,8 +2,8 @@
 	"id": "gui_ubdev",
 	"display_name": "Cheat Interface",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
-	"description": "Provides a GUI for cheat functionalities.",
+	"discord_link": "https://discord.com/channels/549281623154229250/1430592018534633523",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/tree/main/gui_ubdev",
+	"description": "Provides a GUI for the build in cheat functionalities.",
 	"last_updated": "2026-04-11T11:05:37.000Z"
 }

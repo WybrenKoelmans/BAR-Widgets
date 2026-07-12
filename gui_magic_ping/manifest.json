@@ -2,8 +2,8 @@
 	"id": "gui_magic_ping",
 	"display_name": "Magic Ping",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1524805642127282236",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_magic_ping/gui_magic_ping.lua",
 	"description": "Invoking a default Ping (map marker) near a unit or thing, automatically labels it.",
 	"last_updated": "2026-07-09T00:00:00.000Z"
 }

@@ -2,8 +2,8 @@
 	"id": "gui_translate_chat",
 	"display_name": "Translate Chat",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1523400051790188555",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/tree/main/gui_translate_chat/gui_translate_chat.lua",
 	"description": "Translates incoming chat messages using a local LibreTranslate instance.",
 	"last_updated": "2026-07-04T00:00:00.000Z"
 }

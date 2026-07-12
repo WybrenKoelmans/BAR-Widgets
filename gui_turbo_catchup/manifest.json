@@ -2,8 +2,8 @@
 	"id": "gui_turbo_catchup",
 	"display_name": "Turbo Catchup",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1525938371183120566",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_turbo_catchup/gui_turbo_catchup.lua",
 	"description": "Disables all widgets during catchup to maximize performance.",
-	"last_updated": "2026-08-04T00:00:00.000Z"
+	"last_updated": "2026-04-08T00:00:00.000Z"
 }

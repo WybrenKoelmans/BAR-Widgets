@@ -2,8 +2,8 @@
 	"id": "gui_build_category_cycle_keys",
 	"display_name": "Build Category Cycle Keys",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1525222222812151871",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_build_category_cycle_keys/gui_build_category_cycle_keys.lua",
 	"description": "The Z/X/C/V keys cycle through the selected builder's Economy/Combat/Utility/Production build options.",
 	"last_updated": "2026-07-10T00:00:00.000Z"
 }

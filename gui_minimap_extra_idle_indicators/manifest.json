@@ -1,0 +1,9 @@
+{
+	"id": "gui_minimap_extra_idle_indicators",
+	"display_name": "Minimap Extra - Idle Indicators",
+	"author": "uBdead",
+	"discord_link": "https://discord.com/channels/549281623154229250/1413590029753782385",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_minimap_extra/gui_minimap_extra_idle_indicators.lua",
+	"description": "Adds yellow blips that go on and off to get your attention as an extra way to see where your idle builders are.",
+	"last_updated": "2025-09-05T00:00:00.000Z"
+}

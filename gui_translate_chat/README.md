@@ -4,10 +4,9 @@ Translates incoming and outgoing chat messages in real time using a [LibreTransl
 
 ## Installation
 
-Copy https://github.com/WybrenKoelmans/BAR-Widgets/tree/main/gui_translate_chat/gui_translate_chat.lua to the widget directory.
-
 By default this widget uses a public community LibreTranslate server. If you'd rather self-host for better privacy or reliability:
 
+**OPTIONAL:**
 1. Install and run your own LibreTranslate instance by following the official guide: [docs.libretranslate.com/guides/installation](https://docs.libretranslate.com/guides/installation/). By default LibreTranslate listens on port `5000`, which is what this widget expects.
 2. In-game, open the custom options menu (**Settings → Custom Options**) and find the **Translate Chat** section.
 3. Disable **Use (public) community server** to point the widget at your local server (`localhost:5000`).

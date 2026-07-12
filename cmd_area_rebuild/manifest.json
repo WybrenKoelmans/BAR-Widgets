@@ -2,8 +2,8 @@
 	"id": "cmd_area_rebuild",
 	"display_name": "Area Rebuild",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1425581260730007603",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/cmd_area_rebuild/cmd_area_rebuild.lua",
 	"description": "Rebuilds the selected area.",
 	"last_updated": "2025-10-23T17:45:38.000Z"
 }

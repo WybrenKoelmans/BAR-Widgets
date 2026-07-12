@@ -2,8 +2,8 @@
 	"id": "map_camera_startup",
 	"display_name": "Map Camera Startup",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1399506378057453669",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/map_camera_startup/map_camera_startup.lua",
 	"description": "When entering the game, zoom out and center the camera to show the whole map.",
 	"last_updated": "2025-08-27T09:14:34.000Z"
 }

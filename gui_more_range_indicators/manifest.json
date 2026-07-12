@@ -2,8 +2,8 @@
 	"id": "gui_more_range_indicators",
 	"display_name": "More Range Indicators",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1423347398025150576",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/tree/main/gui_more_range_indicators",
 	"description": "Shows vision range indicators with shader rendering.",
 	"last_updated": "2025-10-02T15:43:11.000Z"
 }

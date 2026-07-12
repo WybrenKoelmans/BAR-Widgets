@@ -2,8 +2,8 @@
   "id": "gui_extended_eta_info",
   "display_name": "Extended ETA Info",
   "author": "uBdead",
-  "discord_link": "",
-  "github_link": "",
+  "discord_link": "https://discord.com/channels/549281623154229250/1495385731047362701",
+  "github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_extended_eta_info/gui_extended_eta_info.lua",
   "description": "Shows remaining metal cost below the build ETA",
   "last_updated": "2026-04-18T00:00:00.000Z"
 }

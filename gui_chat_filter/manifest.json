@@ -2,8 +2,8 @@
 	"id": "gui_chat_filter",
 	"display_name": "Chat Filter",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1440115550994043000",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/tree/main/gui_chat_filter",
 	"description": "Censors, modifies or blocks chat messages based on user-defined rules.",
 	"last_updated": "2025-11-17T22:55:04.000Z"
 }

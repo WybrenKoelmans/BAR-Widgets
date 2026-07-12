@@ -2,8 +2,8 @@
 	"id": "gui_event_log",
 	"display_name": "Battle Log",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1422293569812824065",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/tree/main/gui_event_log",
 	"description": "Displays important battle events in a log",
 	"last_updated": "2025-10-22T11:39:32.000Z"
 }

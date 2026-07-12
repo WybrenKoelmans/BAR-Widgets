@@ -2,8 +2,8 @@
 	"id": "gui_control_hints",
 	"display_name": "Control Hints",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1426919778232303686",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/tree/main/gui_control_hints",
 	"description": "Show little hints about controls when in the proper context",
 	"last_updated": "2025-10-13T16:56:43.000Z"
 }
