@@ -1,9 +1,0 @@
-{
-	"id": "unit_ressurected_find_ally",
-	"display_name": "Ressurected Find Ally",
-	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
-	"description": "Resurrected units will find their ally who resurrected them or a building.",
-	"last_updated": "2025-10-05T20:07:47.000Z"
-}
