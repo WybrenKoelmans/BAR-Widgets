@@ -2,6 +2,9 @@
 
 A performance optimization widget for Beyond All Reason that automatically disables UI widgets when the game falls behind the server, maximizing frame rate to catch up to real-time gameplay.
 
+## Warning
+Sometimes glitches out. Try to disable the widget manually in this case.
+
 ## Description
 
 When playing online, sometimes your client can fall behind the server due to network latency, intensive gameplay scenarios, or system load. This widget monitors the frame rate differential and automatically disables non-essential UI widgets during these "catchup" periods to free up resources and improve performance.
