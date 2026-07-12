@@ -1,0 +1,9 @@
+{
+	"id": "gui_turbo_catchup",
+	"display_name": "Turbo Catchup",
+	"author": "uBdead",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Disables all widgets during catchup to maximize performance.",
+	"last_updated": "2026-08-04T00:00:00.000Z"
+}
