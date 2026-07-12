@@ -2,8 +2,8 @@
 	"id": "gui_point_tracker_advanced",
 	"display_name": "Point Tracker Advanced",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
-	"description": "Allows for customizable point tracking.",
+	"discord_link": "https://discord.com/channels/549281623154229250/1396193562449674372",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_point_tracker_advanced/gui_point_tracker_advanced.lua",
+	"description": "Allows for customizable pings/map markers.",
 	"last_updated": "2025-08-27T09:14:34.000Z"
 }

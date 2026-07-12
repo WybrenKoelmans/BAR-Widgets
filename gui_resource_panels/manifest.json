@@ -2,8 +2,8 @@
 	"id": "gui_resource_panels",
 	"display_name": "Resource Panels",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1492974939689586799",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_resource_panels/gui_resource_panels.lua",
 	"description": "Shows the amount of metal/energy units are using during Resource Mode screenmode with world-view labels and an overview breakdown panel.",
 	"last_updated": "2026-04-12T00:00:00.000Z"
 }

@@ -2,8 +2,8 @@
 	"id": "unit_ressurected_find_ally",
 	"display_name": "Ressurected Find Ally",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1396192073270427799",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/unit_ressurected_find_ally/unit_ressurected_find_ally.lua",
 	"description": "Resurrected units will find their ally who resurrected them or a building.",
 	"last_updated": "2025-10-05T20:07:47.000Z"
 }

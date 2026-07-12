@@ -2,8 +2,8 @@
 	"id": "cmd_close_enough",
 	"display_name": "Close Enough",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1491507955739131956",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/cmd_close_enough/cmd_close_enough.lua",
 	"description": "Clicking right next to a unit (so missing it), will just select it anyway.",
 	"last_updated": "2026-04-08T20:07:47.000Z"
 }

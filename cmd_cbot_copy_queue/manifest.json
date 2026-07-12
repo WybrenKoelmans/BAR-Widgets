@@ -2,8 +2,8 @@
 	"id": "cmd_cbot_copy_queue",
 	"display_name": "Constructors copy queue of Constructors",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1396189267998539919",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/cmd_cbot_copy_queue/cmd_cbot_copy_queue.lua",
 	"description": "Instead of guarding a Constructors, they will just copy the orders.",
 	"last_updated": "2025-08-27T09:14:34.000Z"
 }

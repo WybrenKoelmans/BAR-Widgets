@@ -1,9 +1,9 @@
 {
 	"id": "gui_scroll_queue",
-	"display_name": "Scroll Queue",
+	"display_name": "Scroll to Queue",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1519806457581801685",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/gui_scroll_queue/gui_scroll_queue.lua",
 	"description": "Use the mouse wheel to add/remove units from the factory build queue while hovering the build menu.",
 	"last_updated": "2026-06-25T00:00:00.000Z"
 }

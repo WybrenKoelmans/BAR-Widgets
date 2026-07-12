@@ -2,8 +2,8 @@
 	"id": "unit_con_gtfo",
 	"display_name": "Constructors GTFO",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1416848378884653076",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/unit_con_gtfo/unit_con_gtfo.lua",
 	"description": "Makes constructors leave the factory faster by giving them a move order immediately after they finish.",
 	"last_updated": "2025-09-14T18:07:46.000Z"
 }

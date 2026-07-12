@@ -1,9 +1,9 @@
 {
 	"id": "cmd_factory_quota_meta",
-	"display_name": "Factory Quota With Meta",
+	"display_name": "Manipulate Factory Quota by holding Meta/Spacebar",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1406011575772647474",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/cmd_factory_quota_meta/cmd_factory_quota_meta.lua",
 	"description": "Holding Meta (spacebar) will manipulate the factory quota while clicking build orders in grid menu.",
 	"last_updated": "2025-08-27T09:14:34.000Z"
 }

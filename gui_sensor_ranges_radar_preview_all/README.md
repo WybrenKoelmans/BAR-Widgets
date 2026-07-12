@@ -5,8 +5,8 @@
 - **Author:** uBdead, Beherith
 - **Date:** 2025.08.13
 - **License:** Lua: GPLv2, GLSL: (c) Beherith (mysterme@gmail.com)
-- **Layer:** 0
-- **Enabled by default:** true
+
+Time to get rid of those nasty radar gaps. With this widget all radar coverages will be overlapped while building or selecting a radar (including allies).
 
 ## How it works
 

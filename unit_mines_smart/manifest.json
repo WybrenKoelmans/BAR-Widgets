@@ -2,8 +2,8 @@
 	"id": "unit_mines_smart",
 	"display_name": "Smart Mines",
 	"author": "uBdead",
-	"discord_link": "",
-	"github_link": "",
+	"discord_link": "https://discord.com/channels/549281623154229250/1404560229298868415",
+	"github_link": "https://github.com/WybrenKoelmans/BAR-Widgets/blob/main/unit_mines_smart/unit_mines_smart.lua",
 	"description": "Mines will detonate only when an enemy of appropriate tech level is nearby.",
 	"last_updated": "2025-08-27T09:14:34.000Z"
 }
