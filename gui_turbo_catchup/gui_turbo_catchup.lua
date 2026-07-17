@@ -28,6 +28,62 @@ local window = 0
 local spGetGameFrame = Spring.GetGameFrame
 local disabledWidgets = {} -- to keep track of which widgets we disabled so we can re-enable them later
 
+local LOCK_DIR = "LuaUI/Config"
+local LOCK_FILE = LOCK_DIR .. "/turbo_catchup_lock.lua"
+
+-- The lock file is our crash-recovery record: it always reflects (a superset of)
+-- whatever is currently force-disabled. If this widget errors out, or the whole
+-- game crashes, mid-catchup, the in-memory disabledWidgets table is lost, but the
+-- file on disk survives and lets widget:Initialize() restore everything next time.
+local function writeLockFile(widgets)
+    local ok, err = pcall(function()
+        Spring.CreateDir(LOCK_DIR)
+        table.save(widgets, LOCK_FILE, "-- Turbo Catchup lock file, auto-restored on next widget init")
+    end)
+    if not ok then
+        Spring.Echo("Turbo Catchup: failed to write lock file: " .. tostring(err))
+    end
+end
+
+local function clearLockFile()
+    if VFS.FileExists(LOCK_FILE) then
+        pcall(os.remove, LOCK_FILE)
+    end
+end
+
+local function readLockFile()
+    if not VFS.FileExists(LOCK_FILE) then
+        return nil
+    end
+    local ok, result = pcall(VFS.Include, LOCK_FILE)
+    if not ok or type(result) ~= "table" then
+        Spring.Echo("Turbo Catchup: lock file present but unreadable, discarding it: " .. tostring(result))
+        return nil
+    end
+    return result
+end
+
+-- Restore any widgets that a previous session left disabled without ever
+-- getting to call disableCatchupMode (widget error, forced quit, engine crash).
+local function restoreFromLockFile()
+    local stale = readLockFile()
+    if not stale or not next(stale) then
+        clearLockFile()
+        return
+    end
+
+    Spring.Echo("Turbo Catchup: found a leftover lock file from a previous session, restoring widgets disabled by it")
+    for name in pairs(stale) do
+        if not widgetWhitelist[name] then
+            local ok, err = pcall(function() widgetHandler:EnableWidget(name) end)
+            if not ok then
+                Spring.Echo("Turbo Catchup: failed to restore widget '" .. tostring(name) .. "': " .. tostring(err))
+            end
+        end
+    end
+    clearLockFile()
+end
+
 local function GetWidgetToggleValue(widgetname)
     if widgetHandler.orderList[widgetname] == nil or widgetHandler.orderList[widgetname] == 0 then
         return false
@@ -49,6 +105,12 @@ local function catchupMode()
 
     -- enable catchup mode
     turboActive = true
+
+    -- Work out the full set of widgets we're about to disable before touching
+    -- any of them, and persist it immediately. If we crash partway through the
+    -- disabling loop below, the lock file already lists everything we intended
+    -- to disable, so recovery on the next Initialize is never missing an entry.
+    local toDisable = {}
     for name, data in pairs(widgetHandler.knownWidgets) do
         local state = GetWidgetToggleValue(name)
         local realState = 0
@@ -61,8 +123,18 @@ local function catchupMode()
         end
 
         if not widgetWhitelist[name] and realState >= 1 then
-            widgetHandler:DisableWidget(name)
+            toDisable[name] = true
+        end
+    end
+
+    writeLockFile(toDisable)
+
+    for name in pairs(toDisable) do
+        local ok, err = pcall(function() widgetHandler:DisableWidget(name) end)
+        if ok then
             disabledWidgets[name] = true
+        else
+            Spring.Echo("Turbo Catchup: failed to disable widget '" .. tostring(name) .. "': " .. tostring(err))
         end
     end
 end
@@ -73,30 +145,37 @@ local function disableCatchupMode()
     -- disable catchup mode
     turboActive = false
     Spring.Echo("Disabling turbo catchup mode, caught up to server")
-    for name, data in pairs(disabledWidgets) do
+    for name in pairs(disabledWidgets) do
         if not widgetWhitelist[name] then
-            widgetHandler:EnableWidget(name)
+            local ok, err = pcall(function() widgetHandler:EnableWidget(name) end)
+            if ok then
+                disabledWidgets[name] = nil
+            else
+                Spring.Echo("Turbo Catchup: failed to re-enable widget '" .. tostring(name) .. "': " .. tostring(err))
+            end
+        else
             disabledWidgets[name] = nil
-            -- Spring.Echo("Re-enabled widget: " .. name)
         end
+    end
+
+    -- Only clear the lock file once everything has actually been restored;
+    -- otherwise keep it (updated) so a future Initialize can retry the rest.
+    if not next(disabledWidgets) then
+        clearLockFile()
+    else
+        writeLockFile(disabledWidgets)
     end
 end
 
 function widget:Update(dt)
     local currentFrame = spGetGameFrame()
 
-    -- if serverFrame - currentFrame < Game.gameSpeed * -10 then
-        -- we are probably actually catching up and the GameProgress are not arriving due to packet queuing
-        -- Spring.Echo("Frames ahead of server: " .. (currentFrame - serverFrame) .. ", enabling catchup mode preemptively")
-        -- catchupMode()
-    -- end
-
     window = window + dt
     if window >= 1 then
         frameRate = (currentFrame - lastFrame) / window
         lastFrame = currentFrame
         window = 0
-        
+
         if turboActive and frameRate < 35 then
             -- we have most likely caught up
             disableCatchupMode()
@@ -106,19 +185,15 @@ function widget:Update(dt)
             catchupMode()
         end
     end
-    
 end
 
 function widget:GameProgress(frame)
     serverFrame = frame
-    -- Spring.Echo("Server frame: " .. serverFrame)
 
     local behindFrames = serverFrame - spGetGameFrame()
     if behindFrames > CATCH_UP_THRESHOLD and not turboActive then
         catchupMode()
     end
-    -- Spring.Echo("Frames behind server: " .. behindFrames, "Turbo catchup active: " .. tostring(turboActive),
-    -- "frames limit: " .. CATCH_UP_THRESHOLD)
     if behindFrames <= CATCH_UP_THRESHOLD and turboActive then
         disableCatchupMode()
     end
@@ -135,6 +210,10 @@ function widget:Initialize()
     lastFrame = spGetGameFrame()
     frameRate = 30
     serverFrame = spGetGameFrame()
+
+    -- If a previous session crashed (or was otherwise torn down) while widgets
+    -- were force-disabled, restore them now before doing anything else.
+    restoreFromLockFile()
 
     WG['turbo_catchup'] = {
         RegisterWidget = function(widgetName)
