@@ -130,6 +130,7 @@ local cases = {
 	"test_compile",
 	"test_conflicts",
 	"test_capture",
+	"test_engine_sync",
 }
 
 for _, name in ipairs(cases) do

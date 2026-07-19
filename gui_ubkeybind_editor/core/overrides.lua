@@ -17,39 +17,21 @@ return function(core)
 
 	local M = {}
 
-	local function bareKeyName(key)
-		if key:sub(1, 3) == "sc_" then
-			return key:sub(4)
-		end
-		return key
-	end
-
-	-- Two known-corrupt shapes the engine can never bind, both wedging a unit
-	-- forever if left in the store (compile keeps re-emitting a bind/unbind
-	-- the engine rejects every session):
-	--  1. a doubled "sc_" prefix ("sc_sc_a") — the fromCapture double-prefix
-	--     bug (fixed 2026-07-19).
-	--  2. a multi-press chain containing a named/invariant key ("f9,f9" OR
-	--     "sc_f9,sc_f9" — chaining that class of key is rejected live by the
-	--     engine in EVERY string form, confirmed empirically; not a
-	--     formatting problem, capture now refuses to form such a chain at
-	--     all, but earlier captures could have stored either shape).
+	-- A keyset string containing a doubled "sc_" prefix (e.g. "sc_sc_a") can
+	-- never be a real engine key; it's the signature of the fromCapture
+	-- double-prefix bug (fixed 2026-07-19). Persisted junk from before the
+	-- fix would otherwise wedge a unit forever (compile keeps re-emitting an
+	-- unbind the engine can never satisfy), so it's dropped on load instead
+	-- of trusted.
+	--
+	-- Multi-press chains are NOT flagged here even though the engine's
+	-- `unbind` command can never remove one (confirmed against the engine
+	-- source: `Bind` splits on commas via ParseKeyChain, `UnBind` doesn't) —
+	-- that's not data corruption, `runtime/engine_sync.lua` handles it by
+	-- redirecting a chain-removing plan through a pristine reload instead of
+	-- sending a doomed unbind command.
 	local function isCorruptKeyset(s)
-		if type(s) ~= "string" then
-			return false
-		end
-		if s:lower():find("sc_sc_", 1, true) then
-			return true
-		end
-		local ks = keyset.parse(s)
-		if ks and #ks.presses > 1 then
-			for _, p in ipairs(ks.presses) do
-				if not keyset.canChain(bareKeyName(p.key)) then
-					return true
-				end
-			end
-		end
-		return false
+		return type(s) == "string" and s:lower():find("sc_sc_", 1, true) ~= nil
 	end
 
 	---@param persisted table|nil  previously serialized store (tolerates junk)
@@ -158,24 +140,6 @@ return function(core)
 		return out
 	end
 
-	---A chain (multi-press keyset) containing a named/invariant key (function
-	---keys, space, tab, numpad...) is never bindable — confirmed live, the
-	---engine rejects it in every string form. Caught here too (not just in
-	---the interactive capture flow) so nothing can set one this way, whether
-	---captured, typed, or replayed from a stale/corrupted override.
-	local function chainError(ks)
-		if #ks.presses <= 1 then
-			return nil
-		end
-		for _, p in ipairs(ks.presses) do
-			local bare = p.key:sub(1, 3) == "sc_" and p.key:sub(4) or p.key
-			if not keyset.canChain(bare) then
-				return "'" .. bare .. "' cannot be used in a multi-press chain"
-			end
-		end
-		return nil
-	end
-
 	---Set a unit's bindings from keyset strings (full replacement).
 	---Validates each keyset against the unit's processor; a set that equals
 	---the base clears the override instead; an empty set means "unbound".
@@ -192,10 +156,6 @@ return function(core)
 			local ks, err = keyset.parse(s)
 			if not ks then
 				return false, "invalid keyset '" .. tostring(s) .. "': " .. tostring(err)
-			end
-			local chainErr = chainError(ks)
-			if chainErr then
-				return false, chainErr
 			end
 			local ok, reason = proc.validate(unit, ks)
 			if not ok then

@@ -50,6 +50,8 @@
 								<span class="row-label">{{ row.label }}</span>
 								<span class="badge badge-override" data-if="row.overridden" title="Changed from preset default">*</span>
 								<span class="badge badge-conflict" data-if="row.conflicted" title="Shares a key with another action">!</span>
+								<span class="reset-button" data-if="row.overridden" data-event-click="event = row.resetEvent"
+									title="Revert to preset default">Reset</span>
 							</div>
 							<div class="col-binding col-primary" data-class-unbound="!row.primary.bound"
 								data-event-click="event = row.primaryEvent">
@@ -66,6 +68,7 @@
 
 			<div class="footer">
 				<span class="footer-hint">Click a binding to change it. Shift-queue variants are managed for you.</span>
+				<button class="footer-button" onclick="widget:RevertAll()">Revert All</button>
 				<button class="footer-button" onclick="widget:Resync()">Resync</button>
 			</div>
 		</div>

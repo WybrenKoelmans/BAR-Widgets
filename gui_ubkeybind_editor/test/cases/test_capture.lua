@@ -66,21 +66,19 @@ return function(core, t, fixture, ctx)
 	t.eq(committed[1].ks, "sc_b,sc_b", "chain committed after window")
 
 	----------------------------------------------------------------
-	-- Chain of an invariant/named key (F9): the engine rejects chaining
-	-- this class of key entirely, in every string form ("f9,f9" AND
-	-- "sc_f9,sc_f9" both error "Bad keysym" live). Capture must refuse to
-	-- form the chain rather than guess at a representation, leaving the
-	-- original single press intact so it can still commit alone.
+	-- Chain of an invariant/named key (F9): fine to CREATE — `bind` splits
+	-- comma-chains per-press regardless of key class. (Removing a chain
+	-- later is the engine's actual limitation, handled at the engine_sync
+	-- layer via a pristine-reload redirect, not restricted here.)
 	----------------------------------------------------------------
 	cap, committed = makeCapture()
 	cap:begin({ unitId = "group_focus/0", slot = 1 })
 	cap:keyPress(292, {}, false, 292)
 	t.eq(cap:pendingCanonical(), "f9", "single F9 press stays bare symbol")
 	cap:keyPress(292, {}, false, 292)
-	t.eq(cap:pendingCanonical(), "f9", "second F9 press is refused as a chain, pending unchanged")
-	t.ok(cap.message ~= nil, "refused chain sets a feedback message")
+	t.eq(cap:pendingCanonical(), "f9,f9", "F9-F9 forms a chain like any other key")
 	cap:update(0.8)
-	t.eq(committed[1].ks, "f9", "original single F9 press still commits normally")
+	t.eq(committed[1].ks, "f9,f9", "chain of a named key commits normally")
 
 	----------------------------------------------------------------
 	-- Accept button commits immediately

@@ -52,10 +52,12 @@ return function(core, t, fixture)
 	t.ok(plan == nil and err ~= nil, "locked unit rejects edits")
 	plan, err = m.setBinding("buildsplit", { "ctrl+space" })
 	t.ok(plan == nil and err ~= nil, "any_wrap rejects modifiers")
+	-- A chain of a named/invariant key is a perfectly valid override to SET
+	-- (`bind` splits comma-chains per-press regardless of key class); only
+	-- removing it later is the engine's actual limitation, handled at the
+	-- engine_sync layer, not rejected here.
 	plan, err = m.setBinding("attack", { "f9,f9" })
-	t.ok(plan == nil and err ~= nil, "chaining a non-chainable key (bare symbol) is rejected")
-	plan, err = m.setBinding("attack", { "sc_f9,sc_f9" })
-	t.ok(plan == nil and err ~= nil, "chaining a non-chainable key (scancode form) is rejected too")
+	t.ok(plan ~= nil, "chaining a named key is accepted as an override" .. (err and (": " .. err) or ""))
 
 	----------------------------------------------------------------
 	-- Same-as-base set clears instead of storing (no commands)
@@ -133,6 +135,20 @@ return function(core, t, fixture)
 		"bind esc buildmenu_pregame_deselect",
 	}, "reset onto a shared keyset rebuilds it in base order")
 	m.commitPlan(plan)
+
+	----------------------------------------------------------------
+	-- resetAll: drops every override for the preset in one shot ("Revert All")
+	----------------------------------------------------------------
+	m = newModel()
+	m.commitPlan(m.setBinding("wantcloak", { "sc_j" }))
+	m.commitPlan(m.setBinding("attack", { "sc_p" }))
+	t.eq(m.overrideCount(), 2, "two overrides set before revert-all")
+	plan = m.resetAll()
+	t.ok(#plan.commands > 0, "resetAll produces a restoring plan")
+	m.commitPlan(plan)
+	t.eq(m.overrideCount(), 0, "resetAll clears every override for the preset")
+	local okAll = m.diffLive(fixture.binds)
+	t.ok(okAll, "after resetAll, live base matches expectations again")
 
 	----------------------------------------------------------------
 	-- verify: against projected state ok, against stale state not ok
@@ -248,11 +264,13 @@ return function(core, t, fixture)
 	t.count(startup5.commands, "corrupt override dropped: attack falls back to base, no-op startup", 0)
 
 	----------------------------------------------------------------
-	-- Corrupted persisted override (bare-symbol chain, the pre-fix capture
-	-- bug): "f9,f9" is a chain the engine can never bind ("Bad keysym"),
-	-- so it's dropped on load exactly like the doubled-"sc_" corruption.
+	-- A persisted chain override is NOT corruption (contrast with m5 above):
+	-- `bind` can create any chain fine, so it loads as a normal override and
+	-- compiles a normal apply plan. Only REMOVING it is the engine's actual
+	-- limitation, handled at the engine_sync layer (pristine-reload
+	-- redirect), not something the store should sanitize away.
 	----------------------------------------------------------------
-	local chainCorrupt = {
+	local chainOverride = {
 		presets = {
 			["luaui/configs/hotkeys/grid_keys.txt"] = {
 				teamstatus_close = { keysets = { "f9,f9" } },
@@ -262,30 +280,10 @@ return function(core, t, fixture)
 	local m6 = core.model.new({
 		catalogTable = fixture.catalogTable,
 		presetKey = "luaui/configs/hotkeys/grid_keys.txt",
-		persistedOverrides = chainCorrupt,
+		persistedOverrides = chainOverride,
 	})
-	t.eq(m6.sanitizedOverrides, { "luaui/configs/hotkeys/grid_keys.txt/teamstatus_close" },
-		"bare-symbol chain override reported for startup logging")
+	t.count(m6.sanitizedOverrides, "a chain override is not flagged as corrupt", 0)
 	local startup6 = m6.refreshFromSnapshot(fixture.binds)
-	t.count(startup6.commands, "bare-symbol chain override dropped: falls back to base, no-op startup", 0)
-
-	-- Same corruption, scancode-prefixed form: chaining F9 is rejected by the
-	-- engine regardless of string representation, so this must be caught too
-	-- (this exact shape is what an earlier, now-reverted fix attempt stored).
-	local scChainCorrupt = {
-		presets = {
-			["luaui/configs/hotkeys/grid_keys.txt"] = {
-				teamstatus_close = { keysets = { "sc_f9,sc_f9" } },
-			},
-		},
-	}
-	local m7 = core.model.new({
-		catalogTable = fixture.catalogTable,
-		presetKey = "luaui/configs/hotkeys/grid_keys.txt",
-		persistedOverrides = scChainCorrupt,
-	})
-	t.eq(m7.sanitizedOverrides, { "luaui/configs/hotkeys/grid_keys.txt/teamstatus_close" },
-		"scancode-form chain of a non-chainable key reported for startup logging")
-	local startup7 = m7.refreshFromSnapshot(fixture.binds)
-	t.count(startup7.commands, "scancode-form chain override dropped: falls back to base, no-op startup", 0)
+	t.contains(startup6.commands, function(c) return c == "bind f9,f9 teamstatus_close" end,
+		"chain override compiles a normal bind command")
 end

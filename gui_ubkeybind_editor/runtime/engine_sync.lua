@@ -226,6 +226,24 @@ function EngineSync:emitKeyset(pair)
 	return "?"
 end
 
+---True if any of a plan's removals is a comma-chain keyset ("sc_b,sc_b").
+---Confirmed against the engine source (RecoilEngine rts/Game/UI/KeyBindings.cpp):
+---`Bind` splits its keyset argument on commas via ParseKeyChain before parsing
+---each press, but `UnBind` passes the WHOLE string straight to CKeySet::Parse
+---in one call — which only ever understands a single press, so it always
+---fails ("Bad keysym: sc_b,sc_b") for ANY chain, regardless of which keys are
+---involved. This is not fixable by choosing a different key or string form
+---(see the reverted F9 investigation) — `unbind` of a chain is simply
+---unsupported by the engine. `bind` of a chain works fine.
+function EngineSync:planHasChainRemoval(plan)
+	for _, r in ipairs(plan.removals) do
+		if self:emitKeyset(r.pair):find(",", 1, true) then
+			return true
+		end
+	end
+	return false
+end
+
 ---Log the exact pairs a failed verify found off (missing = expected but not
 ---live, stale = expected gone but still live) — otherwise a rejected batch
 ---is a single opaque line with nothing to act on.
@@ -254,6 +272,17 @@ function EngineSync:execute(plan)
 		-- (e.g. override cleared by re-entering base keysets).
 		self.model.commitPlan(plan)
 		self.onSynced(self)
+		return true
+	end
+	if self:planHasChainRemoval(plan) then
+		-- unbind can never remove a chain (see planHasChainRemoval). The
+		-- store is already updated by the caller (setBinding/resetUnit/
+		-- resetAll all mutate it before calling execute), so a pristine
+		-- reload — which discards every runtime bind and reloads purely
+		-- from the preset file — naturally clears the stuck chain, then the
+		-- normal resync re-applies every override fresh via `bind` (which
+		-- DOES support chains). No unbind of a chain is ever needed this way.
+		self:requestPristineResync("plan requires removing a chain bind")
 		return true
 	end
 	self.pendingPlan = plan
@@ -352,6 +381,26 @@ function EngineSync:adoptSnapshot(raw)
 	local plan, warnings = self.model.refreshFromSnapshot(raw)
 	for _, w in ipairs(warnings) do
 		self.log("import: " .. w)
+	end
+
+	if self:planHasChainRemoval(plan) then
+		-- A fresh reload still needs to remove a chain: unlike the execute()
+		-- case (a leftover runtime override), this means the chain IS the
+		-- unit's preset-file-defined base — no reload will ever clear it, so
+		-- retrying would just loop. Drop the conflicting override(s) instead
+		-- so those units fall back to living with their base chain, same
+		-- self-heal shape as the corrupted-override handling.
+		local conflicted = {}
+		for _, r in ipairs(plan.removals) do
+			if self:emitKeyset(r.pair):find(",", 1, true) then
+				conflicted[r.unitId] = true
+			end
+		end
+		for unitId in pairs(conflicted) do
+			self.log("reverting override for '" .. unitId
+				.. "': its preset default is a multi-press chain, which the engine's unbind command can never remove")
+			plan = self.model.resetUnit(unitId)
+		end
 	end
 
 	if #plan.commands == 0 then

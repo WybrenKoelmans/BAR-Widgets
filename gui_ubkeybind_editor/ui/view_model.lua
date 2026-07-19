@@ -141,9 +141,11 @@ function ViewModel:rebuild(coreModel, uiPrefs)
 				visible = true,
 				primary = primary,
 				secondary = secondary,
-				-- Click tokens consumed by :update(): "<slot>:<unitId>".
+				-- Click tokens consumed by :update(): "<slot>:<unitId>", or
+				-- "reset:<unitId>" for the per-row revert-to-default control.
 				primaryEvent = "1:" .. row.unitId,
 				secondaryEvent = "2:" .. row.unitId,
+				resetEvent = "reset:" .. row.unitId,
 				searchText = (label .. " " .. row.action .. " " .. table.concat(chipText, " ")):lower(),
 			}
 		end

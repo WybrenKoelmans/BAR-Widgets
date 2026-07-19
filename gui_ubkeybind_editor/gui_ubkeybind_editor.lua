@@ -251,8 +251,32 @@ local function onCaptureCancel()
 	viewModel:setCapture({ active = false })
 end
 
--- A binding slot was clicked: "<slot>:<unitId>".
+-- Drop one unit's override, restoring its preset-default binding.
+local function onResetUnit(unitId)
+	if not engineSync:canEdit() then
+		return
+	end
+	local plan, err = model.resetUnit(unitId)
+	if not plan then
+		log("revert failed: " .. tostring(err))
+		return
+	end
+	local ok, execErr = engineSync:execute(plan)
+	if not ok then
+		log("apply failed: " .. tostring(execErr))
+	end
+	refreshUI()
+end
+
+-- A binding slot ("<slot>:<unitId>") or per-row reset ("reset:<unitId>")
+-- was clicked.
 local function onRowEvent(token)
+	local resetUnitId = token:match("^reset:(.+)$")
+	if resetUnitId then
+		onResetUnit(resetUnitId)
+		return
+	end
+
 	local slotStr, unitId = token:match("^(%d+):(.+)$")
 	if not unitId then
 		return
@@ -312,6 +336,18 @@ function widget:Resync()
 		engineSync:requestPristineResync("manual")
 	end
 	refreshStatus()
+end
+
+function widget:RevertAll()
+	if not model or not engineSync or not engineSync:canEdit() then
+		return
+	end
+	local plan = model.resetAll()
+	local ok, execErr = engineSync:execute(plan)
+	if not ok then
+		log("apply failed: " .. tostring(execErr))
+	end
+	refreshUI()
 end
 
 function widget:CaptureAccept()

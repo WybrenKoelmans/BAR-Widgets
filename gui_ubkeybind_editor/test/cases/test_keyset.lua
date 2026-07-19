@@ -102,14 +102,15 @@ return function(core, t)
 	local second = K.fromCapture({ keySymbol = "b", scanSymbol = "b", shift = true })
 	t.eq(K.canonical(K.appendPress(first, second)), "sc_b,shift+sc_b", "appendPress builds chains")
 
-	-- canChain: named/invariant keys can't be chained AT ALL (confirmed live
-	-- — the engine rejects both "f9,f9" and "sc_f9,sc_f9" as bad keysyms;
-	-- every real preset's chain is letters/punctuation only). Regular keys
-	-- (already scancode-form standalone) remain chainable.
-	t.eq(cap({ keySymbol = "f9", scanSymbol = "f9" }), "f9", "standalone function key stays bare symbol")
-	t.ok(not K.canChain("f9"), "function keys cannot chain")
-	t.ok(not K.canChain("space"), "space cannot chain")
-	t.ok(not K.canChain("numpad8"), "numpad keys cannot chain")
-	t.ok(K.canChain("b"), "regular letter keys can chain")
-	t.ok(K.canChain("shift"), "bare-modifier-as-key is not this restriction's concern")
+	-- Chains of a named/invariant key (function keys, space, numpad...) are
+	-- fine to CREATE — the engine's `bind` command splits on commas and
+	-- parses each press independently (ParseKeyChain), so any key that
+	-- parses standalone also chains fine. The real constraint (confirmed
+	-- against the engine source) is that `unbind` can never remove ANY
+	-- chain, regardless of which keys are in it — that's handled at the
+	-- engine_sync layer (a doomed unbind is redirected through a pristine
+	-- reload instead), not by restricting what capture can build.
+	local f9a = K.fromCapture({ keySymbol = "f9", scanSymbol = "f9" })
+	local f9b = K.fromCapture({ keySymbol = "f9", scanSymbol = "f9" })
+	t.eq(K.canonical(K.appendPress(f9a, f9b)), "f9,f9", "function keys chain fine (bind supports it)")
 end

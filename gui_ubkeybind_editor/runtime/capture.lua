@@ -131,17 +131,6 @@ function Capture:keyPress(keyCode, mods, isRepeat, scanCode)
 	self.modKeyDown = nil
 	self.sawNonMod = true
 
-	-- A press extending an existing pending into a multi-press chain: named/
-	-- invariant keys (function keys, space, tab, numpad...) can't be chained
-	-- at all — confirmed live, the engine rejects it in every string form
-	-- tried. Refuse the chain and leave the original single press pending
-	-- (it can still commit normally); don't build something unbindable.
-	if self.pending and not self.keyset.canChain(keySym) then
-		self:setMessage((keySym ~= "" and keySym:upper() or "this key")
-			.. " can't be chained — Accept binds the first press alone, or try a different key")
-		return true
-	end
-
 	local press = {
 		keySymbol = keySym,
 		scanSymbol = self.getScanSymbol(scanCode),

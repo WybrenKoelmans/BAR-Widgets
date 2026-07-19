@@ -330,26 +330,6 @@ return function(core)
 		return table.concat(parts, ", ")
 	end
 
-	---True if `keySymbol` is eligible to appear in a multi-press chain.
-	---Confirmed empirically: every comma-chain in every real BAR preset uses
-	---only letters/punctuation ("sc_b,sc_b", "sc_l,sc_l", "sc_;,sc_;", ...);
-	---chaining a named/invariant key (function keys, space, tab, numpad...)
-	---is rejected live by the engine ("Bad keysym") in BOTH the bare-symbol
-	---form ("f9,f9") and the scancode form ("sc_f9,sc_f9") — this isn't a
-	---string-formatting problem, chaining that class of key isn't supported
-	---at all, so capture must refuse to form the chain rather than guess at
-	---a representation.
-	function M.canChain(keySymbol)
-		local sym = keySymbol and trim(tostring(keySymbol)):lower() or ""
-		if sym == "" then
-			return true
-		end
-		if IS_MOD[sym] or MODKEY_TO_KEY[sym] then
-			return true -- bare-modifier-as-key chains are not this restriction's concern
-		end
-		return not (INVARIANT_KEYS[sym] or sym:match("^f%d+$") or sym:sub(1, 6) == "numpad")
-	end
-
 	---Build a single-press keyset from raw capture data.
 	---  press = { keySymbol = string?, scanSymbol = string?,
 	---            alt = bool?, ctrl = bool?, shift = bool?, meta = bool? }

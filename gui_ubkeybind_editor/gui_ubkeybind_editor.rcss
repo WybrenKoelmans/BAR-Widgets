@@ -12,7 +12,7 @@
 body {
 	width: 52vw;
 	height: 82vh;
-	max-width: 860dp;
+	max-width: 560dp;
 
 	position: absolute;
 	top: 9vh;
@@ -249,11 +249,21 @@ button:hover {
 	color: rgb(255, 120, 100);
 	border: 1dp rgba(255, 120, 100, 160);
 }
+.reset-button {
+	display: inline-block;
+	margin-left: 8dp;
+	color: rgba(255, 255, 255, 140);
+	font-size: 0.8em;
+	text-decoration: underline;
+}
+.reset-button:hover {
+	color: rgb(255, 220, 120);
+}
 
 .col-binding {
 	flex-grow: 0;
 	flex-shrink: 0;
-	flex-basis: 160dp;
+	flex-basis: 120dp;
 	margin: 2dp 6dp 2dp 0;
 	padding: 2dp 10dp;
 	min-height: 22dp;
