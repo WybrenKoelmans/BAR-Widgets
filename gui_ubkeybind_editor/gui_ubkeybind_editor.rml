@@ -1,0 +1,87 @@
+<rml>
+
+	<head>
+		<title>Keybind Editor</title>
+		<link rel="stylesheet" href="gui_ubkeybind_editor.rcss" type="text/rcss" />
+	</head>
+
+	<body id="ubke" data-model="ubke_model">
+		<div class="window">
+			<div class="titlebar">
+				<span class="title">Keybind Editor</span>
+				<div class="debug-controls" data-if="ui.debug">
+					<button onclick="widget:Reload()" title="Reload Widget">R</button>
+				</div>
+				<button class="chrome-button" onclick="widget:ToggleDebugger()" title="Toggle Debugger">D</button>
+				<button class="chrome-button close-button" onclick="widget:Close()" title="Close">X</button>
+			</div>
+
+			<div class="toolbar">
+				<input id="ubke-search" type="text" class="search-input" placeholder="Search actions or keys..."
+					onchange="widget:OnSearchChanged(event)" />
+				<span class="status-line">{{ ui.statusLine }}</span>
+			</div>
+
+			<div class="filter-bar">
+				<span class="filter-label">Show:</span>
+				<button class="filter-button" data-class-active="ui.levelFilter == 'common'"
+					data-event-click="filterClick = 'common'">Common</button>
+				<button class="filter-button" data-class-active="ui.levelFilter == 'uncommon'"
+					data-event-click="filterClick = 'uncommon'">Uncommon</button>
+				<button class="filter-button" data-class-active="ui.levelFilter == 'advanced'"
+					data-event-click="filterClick = 'advanced'">Advanced</button>
+				<button class="filter-button" data-class-active="ui.levelFilter == 'all'"
+					data-event-click="filterClick = 'all'">All</button>
+			</div>
+
+			<div class="content">
+				<div class="category" data-for="category : view.categories"
+					data-class-collapsed="category.collapsed" data-class-hidden="!category.visible">
+					<div class="category-title" data-event-click="category.collapsed = !category.collapsed">
+						<span class="caret" data-if="!category.collapsed">-</span>
+						<span class="caret" data-if="category.collapsed">+</span>
+						<span class="category-name">{{ category.label }}</span>
+						<span class="category-count">{{ category.matchCount }}</span>
+					</div>
+					<div class="rows">
+						<div class="row" data-for="row : category.rows"
+							data-class-hidden="!row.visible" data-class-locked="row.locked">
+							<div class="col-label" title="{{ row.tooltip }}">
+								<span class="row-label">{{ row.label }}</span>
+								<span class="badge badge-override" data-if="row.overridden" title="Changed from preset default">*</span>
+								<span class="badge badge-conflict" data-if="row.conflicted" title="Shares a key with another action">!</span>
+							</div>
+							<div class="col-binding col-primary" data-class-unbound="!row.primary.bound"
+								data-event-click="event = row.primaryEvent">
+								<span class="binding-text">{{ row.primary.display }}</span>
+							</div>
+							<div class="col-binding col-secondary" data-class-unbound="!row.secondary.bound"
+								data-event-click="event = row.secondaryEvent">
+								<span class="binding-text">{{ row.secondary.display }}</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="footer">
+				<span class="footer-hint">Click a binding to change it. Shift-queue variants are managed for you.</span>
+				<button class="footer-button" onclick="widget:Resync()">Resync</button>
+			</div>
+		</div>
+
+		<div class="capture-overlay" data-if="capture.active">
+			<div class="capture-box">
+				<div class="capture-title">Press keys for: {{ capture.actionLabel }}</div>
+				<div class="capture-keys">{{ capture.pendingDisplay }}</div>
+				<div class="capture-conflicts" data-if="capture.hasConflicts">{{ capture.conflictText }}</div>
+				<div class="capture-buttons">
+					<button class="capture-button" onclick="widget:CaptureAccept()">Accept</button>
+					<button class="capture-button" onclick="widget:CaptureUnbind()">Unbind</button>
+					<button class="capture-button" onclick="widget:CaptureCancel()">Cancel</button>
+				</div>
+				<div class="capture-hint">Esc cancels &bull; second key within 0.7s makes a chain</div>
+			</div>
+		</div>
+	</body>
+</rml>

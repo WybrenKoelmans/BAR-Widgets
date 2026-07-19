@@ -1,0 +1,350 @@
+/* ubKeybind Editor — styles.
+ * RmlUi notes (proven in the prototype):
+ *  - display:table is unreliable; rows are flexbox.
+ *  - everything defaults to display:block via the universal rule.
+ */
+
+* {
+	font-family: "Exo 2";
+	display: block;
+}
+
+body {
+	width: 52vw;
+	height: 82vh;
+	max-width: 860dp;
+
+	position: absolute;
+	top: 9vh;
+	left: 10vw;
+}
+
+.window {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	border: 1dp rgba(255, 255, 255, 60);
+}
+
+button {
+	background: rgba(0, 0, 0, 200);
+	min-width: 24dp;
+	min-height: 24dp;
+	display: inline-block;
+	text-align: center;
+	border: 1dp rgba(255, 255, 255, 100);
+	color: rgb(255, 255, 255);
+}
+button:hover {
+	border-color: rgba(255, 255, 255, 200);
+	background: rgba(40, 40, 40, 220);
+}
+
+/* -------------------------------------------------- titlebar */
+
+.titlebar {
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 10dp 14dp;
+	background: rgba(0, 0, 0, 240);
+	border-bottom: 1dp rgba(255, 255, 255, 60);
+}
+.title {
+	display: inline-block;
+	flex: 1;
+	font-size: 1.5em;
+	font-weight: bold;
+}
+.debug-controls {
+	display: inline-block;
+}
+.chrome-button {
+	margin-left: 6dp;
+}
+.close-button:hover {
+	background: rgba(160, 40, 40, 220);
+}
+
+/* -------------------------------------------------- toolbar */
+
+.toolbar {
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	background: rgba(0, 0, 0, 220);
+	padding: 10dp 14dp;
+	border-bottom: 1dp rgba(255, 255, 255, 60);
+}
+.search-input {
+	display: inline-block;
+	width: 40%;
+	min-height: 28dp;
+	padding: 4dp 8dp;
+	background: rgba(255, 255, 255, 20);
+	border: 1dp rgba(255, 255, 255, 100);
+	color: rgb(255, 255, 255);
+}
+.status-line {
+	display: inline-block;
+	flex: 1;
+	text-align: right;
+	color: rgba(255, 255, 255, 160);
+	font-size: 0.95em;
+}
+
+/* -------------------------------------------------- filter bar */
+
+.filter-bar {
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	background: rgba(0, 0, 0, 200);
+	padding: 6dp 14dp;
+	border-bottom: 1dp rgba(255, 255, 255, 60);
+}
+.filter-label {
+	display: inline-block;
+	margin-right: 8dp;
+	color: rgba(255, 255, 255, 140);
+	font-size: 0.9em;
+}
+.filter-button {
+	margin-right: 6dp;
+	padding: 2dp 10dp;
+	font-size: 0.9em;
+}
+.filter-button.active {
+	background: rgba(255, 220, 120, 60);
+	border-color: rgba(255, 220, 120, 200);
+	color: rgb(255, 220, 120);
+}
+
+/* -------------------------------------------------- content + scrollbar */
+
+.content {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	background: rgba(0, 0, 0, 200);
+	padding: 14dp;
+}
+
+.content scrollbarvertical {
+	width: 10dp;
+	margin-left: 4dp;
+}
+.content scrollbarvertical slidertrack {
+	background: rgba(255, 255, 255, 20);
+	border-radius: 5dp;
+}
+.content scrollbarvertical sliderbar {
+	background: rgba(255, 255, 255, 80);
+	border-radius: 5dp;
+	min-height: 30dp;
+}
+.content scrollbarvertical sliderbar:hover {
+	background: rgba(255, 255, 255, 140);
+}
+.content scrollbarvertical sliderbar:active {
+	background: rgba(255, 220, 120, 220);
+}
+.content scrollbarvertical sliderarrowdec,
+.content scrollbarvertical sliderarrowinc {
+	display: none;
+}
+
+/* -------------------------------------------------- categories */
+
+.category {
+	margin-bottom: 14dp;
+}
+.category.hidden {
+	display: none;
+}
+.category-title {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	font-weight: bold;
+	font-size: 1.2em;
+	margin-bottom: 6dp;
+	padding: 4dp 0;
+}
+.category-title:hover {
+	color: rgb(255, 220, 120);
+}
+.caret {
+	display: inline-block;
+	width: 16dp;
+	text-align: center;
+}
+.category-name {
+	display: inline-block;
+}
+.category-count {
+	display: inline-block;
+	margin-left: 8dp;
+	color: rgba(255, 255, 255, 120);
+	font-size: 0.85em;
+}
+.category.collapsed .rows {
+	display: none;
+}
+
+/* -------------------------------------------------- rows */
+
+.rows {
+	width: 100%;
+}
+.row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	width: 100%;
+	padding: 3dp 4dp;
+	border-bottom: 1dp rgba(255, 255, 255, 30);
+}
+.row.hidden {
+	display: none;
+}
+.row.locked .row-label {
+	color: rgba(255, 255, 255, 120);
+}
+.row.locked .col-binding {
+	color: rgba(255, 255, 255, 110);
+	background: rgba(20, 20, 20, 160);
+	border-color: rgba(255, 255, 255, 40);
+}
+.row.locked .col-binding:hover {
+	background: rgba(20, 20, 20, 160);
+	border-color: rgba(255, 255, 255, 40);
+}
+
+.col-label {
+	flex-grow: 2;
+	flex-shrink: 1;
+	flex-basis: 0;
+	padding: 2dp 8dp;
+}
+.row-label {
+	display: inline;
+}
+.badge {
+	display: inline-block;
+	margin-left: 6dp;
+	min-width: 14dp;
+	text-align: center;
+	font-weight: bold;
+	border-radius: 3dp;
+}
+.badge-override {
+	color: rgb(255, 220, 120);
+}
+.badge-conflict {
+	color: rgb(255, 120, 100);
+	border: 1dp rgba(255, 120, 100, 160);
+}
+
+.col-binding {
+	flex-grow: 0;
+	flex-shrink: 0;
+	flex-basis: 160dp;
+	margin: 2dp 6dp 2dp 0;
+	padding: 2dp 10dp;
+	min-height: 22dp;
+	white-space: nowrap;
+	overflow: hidden;
+	text-align: center;
+	background: rgba(30, 30, 30, 220);
+	border: 1dp rgba(255, 255, 255, 100);
+	border-radius: 3dp;
+}
+.col-binding:hover {
+	border-color: rgba(255, 255, 255, 200);
+	background: rgba(50, 50, 50, 230);
+}
+.col-binding.unbound {
+	color: rgba(255, 255, 255, 110);
+	border-color: rgba(255, 255, 255, 40);
+}
+.binding-text {
+	display: inline;
+}
+
+/* -------------------------------------------------- footer */
+
+.footer {
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 8dp 14dp;
+	background: rgba(0, 0, 0, 240);
+	border-top: 1dp rgba(255, 255, 255, 60);
+}
+.footer-hint {
+	display: inline-block;
+	flex: 1;
+	color: rgba(255, 255, 255, 130);
+	font-size: 0.9em;
+}
+.footer-button {
+	margin-left: 8dp;
+	padding: 2dp 10dp;
+}
+
+/* -------------------------------------------------- capture overlay (M3) */
+
+.capture-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 160);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.capture-box {
+	width: 40%;
+	min-width: 320dp;
+	padding: 20dp;
+	background: rgba(10, 10, 10, 245);
+	border: 1dp rgba(255, 220, 120, 200);
+	text-align: center;
+}
+.capture-title {
+	font-size: 1.2em;
+	font-weight: bold;
+	margin-bottom: 10dp;
+}
+.capture-keys {
+	font-size: 1.6em;
+	min-height: 32dp;
+	margin-bottom: 10dp;
+	color: rgb(255, 220, 120);
+}
+.capture-conflicts {
+	color: rgb(255, 120, 100);
+	margin-bottom: 8dp;
+}
+.capture-buttons {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	margin-bottom: 10dp;
+}
+.capture-button {
+	margin: 0 4dp;
+	padding: 4dp 14dp;
+}
+.capture-hint {
+	color: rgba(255, 255, 255, 130);
+	font-size: 0.9em;
+}
