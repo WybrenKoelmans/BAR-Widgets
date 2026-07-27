@@ -198,6 +198,13 @@
         { "id": "blueprint_prev", "label": "Blueprint Previous", "tooltip": "Select previous blueprint", "level": "advanced", "processor": { "type": "direct", "action": "blueprint_prev" } },
         { "id": "blueprint_next", "label": "Blueprint Next", "tooltip": "Select next blueprint", "level": "advanced", "processor": { "type": "direct", "action": "blueprint_next" } }
       ]
+    },
+    {
+      "name": "ubkeybind",
+      "label": "ubKeybind Editor",
+      "entries": [
+        { "id": "ubkeybinds", "label": "Open ubKeybind Editor", "tooltip": "Open the ubKeybind editor", "level": "advanced", "processor": { "type": "direct", "action": "ubkeybinds" } }
+      ]
     }
   ]
 }

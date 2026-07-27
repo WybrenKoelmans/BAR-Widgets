@@ -37,6 +37,11 @@ function ViewModel.new(deps)
 			statusLine = "Waiting for engine...",
 			debug = false,
 			levelFilter = "common",
+			unboundOnly = false,
+			-- Mirrors "every category is collapsed" so the collapse-all button
+			-- can flip its label; kept in sync by :update() polling (individual
+			-- category headers write `collapsed` straight back into our table).
+			allCollapsed = false,
 		},
 		view = {
 			categories = {},
@@ -55,6 +60,10 @@ function ViewModel.new(deps)
 		-- Level filter button clicks ("common"/"uncommon"/"advanced"/"all"),
 		-- same drain-on-update pattern as `event`.
 		filterClick = "",
+		-- "Unbound only" toggle click, same drain-on-update pattern as `event`.
+		unboundToggle = false,
+		-- Collapse/expand-all button click, same drain-on-update pattern.
+		collapseToggle = false,
 	}
 
 	self.query = ""
@@ -83,6 +92,7 @@ function ViewModel:rebuild(coreModel, uiPrefs)
 	if not self.prefsSeeded then
 		self.prefsSeeded = true
 		self.model.ui.levelFilter = (uiPrefs and uiPrefs.levelFilter) or "common"
+		self.model.ui.unboundOnly = (uiPrefs and uiPrefs.unboundOnly) or false
 	end
 
 	-- Conflict badge lookup from the managed scan.
@@ -189,6 +199,50 @@ function ViewModel:update(dt)
 		self:touch("filterClick")
 		self:setLevelFilter(fc)
 	end
+
+	-- Drain an "unbound only" toggle click.
+	if self.model.unboundToggle then
+		self.model.unboundToggle = false
+		self:touch("unboundToggle")
+		self:setUnboundOnly(not self.model.ui.unboundOnly)
+	end
+
+	-- Drain a collapse/expand-all click.
+	if self.model.collapseToggle then
+		self.model.collapseToggle = false
+		self:touch("collapseToggle")
+		self:setAllCollapsed(not self:allCollapsed())
+	end
+
+	-- Individual category headers flip `collapsed` directly in our table via
+	-- two-way binding (no callback), so the button label is synced by polling.
+	local all = self:allCollapsed()
+	if self.model.ui.allCollapsed ~= all then
+		self.model.ui.allCollapsed = all
+		self:touch("ui")
+	end
+end
+
+---True when every category is collapsed (false with no categories, so the
+---button reads "Collapse all" until content exists).
+function ViewModel:allCollapsed()
+	local categories = self.model.view.categories
+	if #categories == 0 then
+		return false
+	end
+	for _, category in ipairs(categories) do
+		if not category.collapsed then
+			return false
+		end
+	end
+	return true
+end
+
+function ViewModel:setAllCollapsed(on)
+	for _, category in ipairs(self.model.view.categories) do
+		category.collapsed = on
+	end
+	self:touch("view")
 end
 
 ---Switch the cumulative visibility tier ("common"/"uncommon"/"advanced"/"all")
@@ -202,15 +256,35 @@ function ViewModel:setLevelFilter(level)
 	self:applySearch()
 end
 
+---Toggle showing only actions with neither a primary nor a secondary bind.
+---Turning it on also jumps the level filter to "all" — an unbound advanced
+---or uncommon action would otherwise stay hidden by the current tier.
+function ViewModel:setUnboundOnly(on)
+	if self.model.ui.unboundOnly == on then
+		return
+	end
+	self.model.ui.unboundOnly = on
+	if on then
+		self.model.ui.levelFilter = "all"
+	end
+	self:touch("ui")
+	self:applySearch()
+end
+
 function ViewModel:applySearch()
 	local query = self.query
+	local searching = query ~= ""
 	local maxRank = self.core.catalog.levelRank(self.model.ui.levelFilter)
+	local unboundOnly = self.model.ui.unboundOnly
 	for _, category in ipairs(self.model.view.categories) do
 		local matches = 0
 		for _, row in ipairs(category.rows) do
-			local textOk = query == "" or row.searchText:find(query, 1, true) ~= nil
-			local levelOk = self.core.catalog.levelRank(row.level) <= maxRank
-			row.visible = textOk and levelOk
+			local textOk = not searching or row.searchText:find(query, 1, true) ~= nil
+			-- A search should surface matches from every level tier, not just
+			-- the currently selected one.
+			local levelOk = searching or self.core.catalog.levelRank(row.level) <= maxRank
+			local unboundOk = not unboundOnly or (not row.primary.bound and not row.secondary.bound)
+			row.visible = textOk and levelOk and unboundOk
 			if row.visible then
 				matches = matches + 1
 			end
@@ -260,7 +334,7 @@ function ViewModel:uiPrefs()
 			collapsed[category.name] = true
 		end
 	end
-	return { collapsed = collapsed, levelFilter = self.model.ui.levelFilter }
+	return { collapsed = collapsed, levelFilter = self.model.ui.levelFilter, unboundOnly = self.model.ui.unboundOnly }
 end
 
 function ViewModel:close()

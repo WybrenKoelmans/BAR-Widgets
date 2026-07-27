@@ -8,7 +8,8 @@
 --   begin{unitId, slot, actionLabel}  → active, waiting for input
 --   keyPress(...)                     → build/extend the pending keyset,
 --                                       (re)arm the chain window
---   update(dt)                        → chain window expiry auto-commits
+--   update(dt)                        → chain window expiry just closes the
+--                                       window for extension; does NOT commit
 --   accept()                          → commit the pending combo now
 --   unbind()                          → commit "no binding" for this slot
 --   cancel()                          → abort (Esc)
@@ -16,10 +17,14 @@
 -- Rules (from the plan):
 --   * A non-modifier press records a combo (event mods + injected meta) and
 --     arms a chain window; another non-modifier press within the window
---     extends the chain (double-tap etc.). Window expiry commits.
+--     extends the chain (double-tap etc.). Window expiry just stops further
+--     extension — the pending combo stays staged, awaiting an explicit
+--     accept()/unbind(); nothing auto-commits or closes the overlay on its
+--     own, so the user always gets a chance to review before it applies.
 --   * A modifier pressed alone does not complete; if released with no other
---     key pressed in between, it commits as a bare-modifier binding
---     (BAR binds e.g. Any+shift). Any real key in between cancels that.
+--     key pressed in between, it stages a bare-modifier binding (BAR binds
+--     e.g. Any+shift) the same way — still awaiting explicit accept(). Any
+--     real key in between cancels that.
 --   * Esc cancels and is therefore not capturable (Esc-bound actions are
 --     catalog-locked).
 --   * Repeats are consumed and ignored.
@@ -146,7 +151,7 @@ function Capture:keyPress(keyCode, mods, isRepeat, scanCode)
 	end
 
 	self.message = nil
-	if self.pending then
+	if self.pending and self.timer > 0 then
 		self.pending = self.keyset.appendPress(self.pending, single)
 	else
 		self.pending = single
@@ -164,29 +169,30 @@ function Capture:keyRelease(keyCode, mods, scanCode)
 	if self.pending or self.sawNonMod then
 		return true
 	end
-	-- Modifier released with nothing else pressed: commit the bare modifier.
+	-- Modifier released with nothing else pressed: stage the bare modifier as
+	-- the pending combo. Still awaits an explicit accept() — releasing the
+	-- key does not by itself commit or close the overlay.
 	local keySym = self.getKeySymbol(keyCode)
 	local modName = self.keyset.modifierKeyName(keySym)
 	if modName and self.modKeyDown == modName then
 		local single = self.keyset.fromCapture({ keySymbol = keySym })
 		if single then
 			self.pending = single
-			self:_commitPending()
+			self.timer = self.chainTimeout
+			self.onChange(self)
 		end
 	end
 	return true
 end
 
+---Counts down the chain-extension window. Expiry only stops a further press
+---from extending `pending` into a chain (see keyPress) — it never commits or
+---closes the overlay on its own; that's accept()/unbind()'s job.
 function Capture:update(dt)
-	if not self.active or not self.pending then
+	if not self.active or not self.pending or self.timer <= 0 then
 		return
 	end
-	if self.timer > 0 then
-		self.timer = self.timer - dt
-		if self.timer <= 0 then
-			self:_commitPending()
-		end
-	end
+	self.timer = self.timer - dt
 end
 
 function Capture:_commitPending()

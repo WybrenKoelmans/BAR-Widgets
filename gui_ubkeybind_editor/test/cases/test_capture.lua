@@ -38,7 +38,8 @@ return function(core, t, fixture, ctx)
 	end
 
 	----------------------------------------------------------------
-	-- Single combo, auto-commit on chain-window expiry
+	-- Single combo: window expiry stages it but does NOT commit/close —
+	-- only accept()/unbind() ever ends the session.
 	----------------------------------------------------------------
 	local cap, committed = makeCapture()
 	cap:begin({ unitId = "attack", slot = 1, actionLabel = "Attack" })
@@ -47,13 +48,18 @@ return function(core, t, fixture, ctx)
 	t.eq(cap:pendingCanonical(), "ctrl+sc_x", "pending combo built from mods + scancode")
 	t.count(committed, "not committed before window expiry", 0)
 	cap:update(0.8)
-	t.count(committed, "committed after window", 1)
+	t.count(committed, "still not committed after window expiry", 0)
+	t.ok(cap:isActive(), "still active after window expiry — awaits explicit accept")
+	t.eq(cap:pendingCanonical(), "ctrl+sc_x", "pending combo untouched by window expiry")
+	cap:accept()
+	t.count(committed, "committed after explicit accept", 1)
 	t.eq(committed[1].ks, "ctrl+sc_x", "committed canonical keyset")
 	t.eq(committed[1].slot, 1, "slot carried through")
 	t.ok(not cap:isActive(), "inactive after commit")
 
 	----------------------------------------------------------------
-	-- Chain: second press within window extends
+	-- Chain: second press within window extends; a press AFTER the window
+	-- has expired replaces the pending combo instead of extending it.
 	----------------------------------------------------------------
 	cap, committed = makeCapture()
 	cap:begin({ unitId = "onoff_off", slot = 1 })
@@ -62,8 +68,18 @@ return function(core, t, fixture, ctx)
 	cap:keyPress(66, {}, false, 66)
 	t.eq(cap:pendingCanonical(), "sc_b,sc_b", "second press within window forms a chain")
 	t.count(committed, "chain not committed while window open", 0)
-	cap:update(0.8)
-	t.eq(committed[1].ks, "sc_b,sc_b", "chain committed after window")
+	cap:update(0.8) -- window now expired
+	t.count(committed, "chain not committed after window expiry", 0)
+	t.eq(cap:pendingCanonical(), "sc_b,sc_b", "chain still staged after window expiry")
+	cap:accept()
+	t.eq(committed[1].ks, "sc_b,sc_b", "chain committed on explicit accept")
+
+	cap, committed = makeCapture()
+	cap:begin({ unitId = "onoff_off", slot = 1 })
+	cap:keyPress(66, {}, false, 66)
+	cap:update(0.8) -- window expires before the second press
+	cap:keyPress(65, {}, false, 65)
+	t.eq(cap:pendingCanonical(), "sc_a", "press after window expiry replaces pending instead of chaining")
 
 	----------------------------------------------------------------
 	-- Chain of an invariant/named key (F9): fine to CREATE — `bind` splits
@@ -77,8 +93,8 @@ return function(core, t, fixture, ctx)
 	t.eq(cap:pendingCanonical(), "f9", "single F9 press stays bare symbol")
 	cap:keyPress(292, {}, false, 292)
 	t.eq(cap:pendingCanonical(), "f9,f9", "F9-F9 forms a chain like any other key")
-	cap:update(0.8)
-	t.eq(committed[1].ks, "f9,f9", "chain of a named key commits normally")
+	cap:accept()
+	t.eq(committed[1].ks, "f9,f9", "chain of a named key commits on explicit accept")
 
 	----------------------------------------------------------------
 	-- Accept button commits immediately
@@ -91,7 +107,8 @@ return function(core, t, fixture, ctx)
 	t.eq(committed[1].slot, 2, "accept keeps slot")
 
 	----------------------------------------------------------------
-	-- Modifier-only binding: commit on release with nothing else pressed
+	-- Modifier-only binding: staged on release with nothing else pressed,
+	-- but still requires an explicit accept() to commit/close.
 	----------------------------------------------------------------
 	cap, committed = makeCapture()
 	cap:begin({ unitId = "selectbox_append", slot = 1 })
@@ -99,7 +116,11 @@ return function(core, t, fixture, ctx)
 	t.eq(cap:pendingCanonical(), nil, "modifier alone does not build a combo")
 	t.count(committed, "modifier alone does not commit", 0)
 	cap:keyRelease(304, {}, 304)
-	t.eq(committed[1].ks, "shift", "bare modifier committed on release")
+	t.eq(cap:pendingCanonical(), "shift", "bare modifier staged on release")
+	t.count(committed, "release alone does not commit", 0)
+	t.ok(cap:isActive(), "still active after release — awaits explicit accept")
+	cap:accept()
+	t.eq(committed[1].ks, "shift", "bare modifier committed on explicit accept")
 
 	-- A real key in between cancels the bare-modifier path
 	cap, committed = makeCapture()
@@ -109,7 +130,9 @@ return function(core, t, fixture, ctx)
 	cap:keyRelease(304, {}, 304)
 	t.count(committed, "release after a real key does not bare-commit", 0)
 	cap:update(0.8)
-	t.eq(committed[1].ks, "shift+sc_x", "real key with held modifier commits normally")
+	t.count(committed, "still not committed after window expiry", 0)
+	cap:accept()
+	t.eq(committed[1].ks, "shift+sc_x", "real key with held modifier commits on explicit accept")
 
 	----------------------------------------------------------------
 	-- Cancel + unbind + repeat handling + meta

@@ -24,7 +24,7 @@ function widget:GetInfo()
 		author = "uBdead",
 		date = "July 2026",
 		license = "GNU GPL, v2 or later",
-		layer = 0,
+		layer = 6001, -- we want to be kind of late so other widgets can first register their actions
 		enabled = true,
 		handler = true,
 	}
@@ -80,6 +80,10 @@ local pendingConfigData
 local uiPrefs = {}
 local visible = false
 local debugMode = false
+-- Frame 0 == still in the pregame ready-up/lobby screen (gui_pregameui.lua
+-- uses the same GetGameFrame()/GameFrame-callin signal to detect this).
+-- The editor must stay hidden until the match actually starts.
+local gameStarted = Spring.GetGameFrame() > 0
 
 ----------------------------------------------------------------------
 -- Layout-aware display of scancodes (reuses BAR's layout tables when
@@ -134,11 +138,36 @@ local function refreshUI()
 end
 
 local function setVisible(on)
+	if on and not gameStarted then
+		-- Still in the pregame lobby: refuse to show regardless of caller
+		-- (toggle hotkey, dev-default at Initialize, ...).
+		on = false
+	end
 	visible = on
 	if document then
 		if on then
+			-- The engine can drop SDL text-input mode globally (e.g. after
+			-- the chat console closes, gui_chat.lua calls
+			-- Spring.SDLStopTextInput() unconditionally) and nothing else
+			-- turns it back on for us, so the search box stops accepting
+			-- typed characters. Defensively re-enable it whenever we open,
+			-- same workaround BAR's own chat widget uses for itself.
+			Spring.SDLStartTextInput()
 			document:Show()
 		else
+			-- An active capture session swallows every KeyPress (see
+			-- widget:KeyPress) regardless of document visibility — cancel it
+			-- so hiding the window (e.g. clicking X mid-capture) can't leave
+			-- all keyboard input eaten while invisible.
+			if capture and capture:isActive() then
+				capture:cancel()
+			end
+			-- Drop focus before hiding so a still-focused search input
+			-- doesn't keep swallowing keys (Tab included) while invisible.
+			local input = document:GetElementById("ubke-search")
+			if input then
+				pcall(function() input:Blur() end)
+			end
 			document:Hide()
 		end
 	end
@@ -368,6 +397,12 @@ function widget:CaptureCancel()
 	end
 end
 
+function widget:OnSearchFocus()
+	-- Same SDL-text-input-mode workaround as setVisible(true) — clicking
+	-- into the box is the moment typing is actually about to happen.
+	Spring.SDLStartTextInput()
+end
+
 function widget:OnSearchChanged(event)
 	if not viewModel then
 		return
@@ -388,6 +423,50 @@ function widget:OnSearchChanged(event)
 end
 
 ----------------------------------------------------------------------
+-- Custom widget action discovery
+----------------------------------------------------------------------
+
+-- True for widgets shipped inside the game archive (the standard, bundled
+-- widget set) as opposed to loose/user-installed ones. Bundled widgets'
+-- actions aren't "custom" even though they go through the same AddAction
+-- path — they just haven't been added to keybinds_catalog.json yet.
+local function isBundledWidget(w)
+	local name = w and w.whInfo and w.whInfo.name
+	local known = name and widgetHandler.knownWidgets and widgetHandler.knownWidgets[name]
+	return known ~= nil and known.fromZip == true
+end
+
+-- Every action a currently-loaded, non-bundled (user-installed) widget
+-- registered for key binding via widgetHandler:AddAction(cmd, func, data,
+-- "p"...). Returns action (string) -> widgetNames (string[]); core/catalog.lua
+-- merges this into a synthetic "Custom Widget Actions" category so these
+-- become normal, bindable units.
+local function discoverWidgetActions()
+	local ah = widgetHandler and widgetHandler.actionHandler
+	if not ah or type(ah.keyPressActions) ~= "table" then
+		return nil
+	end
+	local out = {}
+	for cmd, callInfoList in pairs(ah.keyPressActions) do
+		local names, seen = {}, {}
+		for _, callInfo in ipairs(callInfoList) do
+			local w = callInfo[1]
+			if not isBundledWidget(w) then
+				local name = (w and w.whInfo and w.whInfo.name) or "?"
+				if not seen[name] then
+					seen[name] = true
+					names[#names + 1] = name
+				end
+			end
+		end
+		if #names > 0 then
+			out[cmd] = names
+		end
+	end
+	return out
+end
+
+----------------------------------------------------------------------
 -- Widget lifecycle
 ----------------------------------------------------------------------
 
@@ -396,13 +475,13 @@ function widget:Initialize()
 	local catalogText = VFS.LoadFile(CATALOG_PATH, VFS.RAW_FIRST)
 	if not catalogText then
 		log("failed to read " .. CATALOG_PATH)
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 		return
 	end
 	local okDecode, decoded = pcall(Json.decode, catalogText)
 	if not okDecode or type(decoded) ~= "table" then
 		log("failed to parse " .. CATALOG_PATH .. ": " .. tostring(decoded))
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 		return
 	end
 
@@ -414,12 +493,13 @@ function widget:Initialize()
 		catalogTable = decoded,
 		presetKey = Spring.GetConfigString("KeybindingFile", DEFAULT_PRESET),
 		persistedOverrides = overridesData,
+		widgetActions = discoverWidgetActions(),
 	})
 	if not model then
 		for _, e in ipairs(errs or {}) do
 			log("catalog error: " .. e)
 		end
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 		return
 	end
 	for _, e in ipairs(model.catalogErrors or {}) do
@@ -433,7 +513,7 @@ function widget:Initialize()
 	rmlContext = RmlUi.GetContext("shared")
 	if not rmlContext then
 		log("no shared RML context")
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 		return
 	end
 	viewModel = ViewModel.new({
@@ -447,7 +527,7 @@ function widget:Initialize()
 	if not document then
 		log("failed to load " .. RML_PATH)
 		widget:Shutdown()
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 		return
 	end
 	document:ReloadStyleSheet()
@@ -478,12 +558,19 @@ function widget:Initialize()
 	})
 	engineSync:initialize()
 
-	-- widgetHandler:AddAction("ubkeybinds", function()
-	-- 	setVisible(not visible)
-	-- 	return true
-	-- end, nil, "t")
+	widgetHandler.actionHandler:AddAction(self, "ubkeybinds", function()
+		Spring.Echo("ubKeybind Editor: toggle visibility")
+		setVisible(not visible)
+		return true
+	end, nil, "tp")
 
 	refreshStatus()
+end
+
+function widget:GameFrame(_gf)
+	-- Only fires once the match is actually running (never called during the
+	-- frame-0 pregame lobby), so this is a one-way lobby -> in-game flip.
+	gameStarted = true
 end
 
 function widget:Update(dt)

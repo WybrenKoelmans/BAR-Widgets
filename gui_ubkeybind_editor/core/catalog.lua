@@ -209,7 +209,57 @@ return function(core)
 			end
 		end
 
+		cat.claimedActions = claimedActions
 		return cat, errs
+	end
+
+	local WIDGET_ACTIONS_CATEGORY = "widget_actions"
+
+	---Merge actions that installed widgets registered via widgetHandler:AddAction
+	---(discovered live, outside the static catalog) into a synthetic "Custom
+	---Widget Actions" category — one direct-processor entry per action not
+	---already claimed by a real catalog entry. Everything downstream (units
+	---expansion, import matching, override store, compiler, conflicts) treats
+	---these exactly like any other catalog entry.
+	---`discovered`: action (string) -> widgetNames (string[]), or nil.
+	function M.mergeWidgetActions(cat, discovered)
+		if not discovered or not next(discovered) then
+			return
+		end
+		local claimed = cat.claimedActions
+		local entries = {}
+		for action, widgetNames in pairs(discovered) do
+			local normalized = M.normalizeAction(action)
+			local id = "widget:" .. normalized
+			-- Parameterized entries claim "<action> *" (family marker), not
+			-- the bare action, since the real command carries a param suffix
+			-- at runtime (e.g. "add_to_autogroup 3"). Check both forms.
+			if not claimed[normalized] and not claimed[normalized .. " *"] and not cat.entriesById[id] then
+				claimed[normalized] = id
+				local entry = {
+					id = id,
+					label = action,
+					tooltip = "Registered by widget: " .. table.concat(widgetNames, ", "),
+					locked = false,
+					hidden = false,
+					level = "common",
+					category = WIDGET_ACTIONS_CATEGORY,
+					processor = { type = "direct", action = normalized },
+					source = "widget",
+				}
+				entries[#entries + 1] = entry
+				cat.entriesById[id] = entry
+			end
+		end
+		if #entries == 0 then
+			return
+		end
+		table.sort(entries, function(a, b) return a.label < b.label end)
+		cat.categories[#cat.categories + 1] = {
+			name = WIDGET_ACTIONS_CATEGORY,
+			label = "Custom Widget Actions",
+			entries = entries,
+		}
 	end
 
 	-- Token-wise numeric-aware comparison for discovered params, so

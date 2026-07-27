@@ -23,13 +23,17 @@ return function(core)
 
 	local M = {}
 
-	---@param deps table { catalogTable, presetKey, persistedOverrides }
+	---@param deps table { catalogTable, presetKey, persistedOverrides, widgetActions }
+	---widgetActions: action (string) -> widgetNames (string[]), from
+	---widgetHandler.actionHandler.keyPressActions -- actions installed
+	---widgets registered themselves, merged in as an extra catalog category.
 	---Returns instance or nil, errors[].
 	function M.new(deps)
 		local cat, catErrs = catalog.load(deps.catalogTable)
 		if not cat then
 			return nil, catErrs
 		end
+		catalog.mergeWidgetActions(cat, deps.widgetActions)
 
 		local store, sanitizedOverrides = overrides.new(deps.persistedOverrides, deps.presetKey)
 

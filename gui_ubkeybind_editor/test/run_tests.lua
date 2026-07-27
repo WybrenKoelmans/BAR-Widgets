@@ -126,6 +126,7 @@ local fixture = dofile(testDir .. "fixtures/grid_snapshot.lua")
 local cases = {
 	"test_keyset",
 	"test_processors",
+	"test_catalog",
 	"test_import",
 	"test_compile",
 	"test_conflicts",
