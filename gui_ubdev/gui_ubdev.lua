@@ -9,7 +9,7 @@ local spGetGameRulesParam = Spring.GetGameRulesParam
 local spGetTeamList = Spring.GetTeamList
 local spGetTeamInfo = Spring.GetTeamInfo
 local spGetPlayerInfo = Spring.GetPlayerInfo
-local spGetMyTeamID = Spring.GetMyTeamID
+local spGetMyTeamID = Spring.GetLocalTeamID
 local spGetViewGeometry = Spring.GetViewGeometry
 local spSetConfigInt = Spring.SetConfigInt
 local spGetConfigInt = Spring.GetConfigInt
@@ -19,8 +19,49 @@ local spSendCommands = Spring.SendCommands
 local spGiveOrderToUnit = Spring.GiveOrderToUnit
 local spGetTeamUnits = Spring.GetTeamUnits
 local spGetUnitStates = Spring.GetUnitStates
+local spGetBuildFacing = Spring.GetBuildFacing
+local spGetGroundHeight = Spring.GetGroundHeight
+local mathFloor = math.floor
 
 local CMD_WAIT = CMD and CMD.WAIT
+
+-- Build grid snapping (matches the engine's own building placement grid)
+local SQUARE_SIZE = 8
+local BUILD_SQUARE_SIZE = SQUARE_SIZE * 2
+
+local function GetBuildingDimensions(unitDefID, facing)
+    local unitDef = UnitDefs[unitDefID]
+    if not unitDef then
+        return 0, 0
+    end
+
+    local FACING_WEST_OR_EAST = 1
+    if facing % 2 == FACING_WEST_OR_EAST then
+        return SQUARE_SIZE * unitDef.zsize, SQUARE_SIZE * unitDef.xsize
+    else
+        return SQUARE_SIZE * unitDef.xsize, SQUARE_SIZE * unitDef.zsize
+    end
+end
+
+local function SnapToBuildGrid(unitDefID, wx, wz, facing)
+    local width, height = GetBuildingDimensions(unitDefID, facing or 0)
+
+    local x
+    if mathFloor(width / BUILD_SQUARE_SIZE) % 2 > 0 then
+        x = mathFloor(wx / BUILD_SQUARE_SIZE) * BUILD_SQUARE_SIZE + SQUARE_SIZE
+    else
+        x = mathFloor((wx + SQUARE_SIZE) / BUILD_SQUARE_SIZE) * BUILD_SQUARE_SIZE
+    end
+
+    local z
+    if mathFloor(height / BUILD_SQUARE_SIZE) % 2 > 0 then
+        z = mathFloor(wz / BUILD_SQUARE_SIZE) * BUILD_SQUARE_SIZE + SQUARE_SIZE
+    else
+        z = mathFloor((wz + SQUARE_SIZE) / BUILD_SQUARE_SIZE) * BUILD_SQUARE_SIZE
+    end
+
+    return x, z
+end
 
 local widget = widget ---@type Widget
 
@@ -269,7 +310,19 @@ function widget:MousePress(x, y, button)
     end
 
     if wx and wy and wz then
-        spSendCommands("give " .. amount .. " " .. dm_handle.selectedUnit .. " " .. dm_handle.selectedTeamID)
+        local defID = nameToDefID[dm_handle.selectedUnit]
+        local unitDef = defID and UnitDefs[defID]
+        if unitDef and unitDef.isBuilding then
+            local facing = spGetBuildFacing()
+            local sx, sz = SnapToBuildGrid(defID, wx, wz, facing)
+            wy = spGetGroundHeight(sx, sz)
+            spSendCommands(string.format(
+                "give %d %s %d @%d,%d,%d",
+                amount, dm_handle.selectedUnit, dm_handle.selectedTeamID, sx, wy, sz
+            ))
+        else
+            spSendCommands("give " .. amount .. " " .. dm_handle.selectedUnit .. " " .. dm_handle.selectedTeamID)
+        end
         return true
     end
 end
@@ -408,7 +461,16 @@ function widget:Update()
             local type, pos = spTraceScreenRay(mx, my, true)
 
             if type == 'ground' then
-                local handle = WG.DrawUnitShapeGL4(defID, pos[1], pos[2], pos[3], 0, 0.6, dm_handle.selectedTeamID, 0.0, 0.0, drawHandle)
+                local unitDef = defID and UnitDefs[defID]
+                local px, py, pz, rotationY = pos[1], pos[2], pos[3], 0.0
+                if unitDef and unitDef.isBuilding then
+                    local facing = spGetBuildFacing()
+                    px, pz = SnapToBuildGrid(defID, pos[1], pos[3], facing)
+                    py = spGetGroundHeight(px, pz)
+                    rotationY = facing * (math.pi / 2)
+                end
+
+                local handle = WG.DrawUnitShapeGL4(defID, px, py, pz, rotationY, 0.6, dm_handle.selectedTeamID, 0.0, 0.0, drawHandle)
                 drawHandle = handle
             else
                 clearDrawHandles()
