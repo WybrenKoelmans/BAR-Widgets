@@ -22,11 +22,11 @@ local spGetUnitTeam = Spring.GetUnitTeam
 local spGetFeaturesInCylinder = Spring.GetFeaturesInCylinder
 local spGetTeamInfo = Spring.GetTeamInfo
 local spGetPlayerInfo = Spring.GetPlayerInfo
-local spGetAccountID = Spring.Utilities.GetAccountID
+local spGetAccountID = BAR.Utilities.GetAccountID
 local spMarkerErasePosition = Spring.MarkerErasePosition
 local spGetSpectatingState = Spring.GetSpectatingState
 
-local myPlayerID = Spring.GetMyPlayerID()
+local myPlayerID = Spring.GetLocalPlayerID()
 local gaiaTeamID = Spring.GetGaiaTeamID()
 local defIDtoTranslatedHumanName = {}
 local commanderDefIDs = {}

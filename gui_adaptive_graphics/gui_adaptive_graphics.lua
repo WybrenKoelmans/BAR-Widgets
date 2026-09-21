@@ -103,7 +103,7 @@ local sampleTimer = 0
 local cooldownTimer = 0
 local currentDegradeIndex = 0   -- 0 = nothing degraded; n = first n settings degraded
 local initialized = false
-local myPlayerID = Spring.GetMyPlayerID()
+local myPlayerID = Spring.GetLocalPlayerID()
 
 -- Saved value per SETTING_LEVELS index, captured just before each degradation step.
 -- Keyed by index (not by ID) so multi-step entries for the same option are handled correctly.
@@ -382,7 +382,7 @@ function widget:Initialize()
     log("  Spring.GetFPS available: " .. tostring(Spring.GetFPS ~= nil))
     log("  Spring.GetPlayerInfo available: " .. tostring(Spring.GetPlayerInfo ~= nil))
 
-    myPlayerID = Spring.GetMyPlayerID()
+    myPlayerID = Spring.GetLocalPlayerID()
     log("  My player ID: " .. tostring(myPlayerID))
 
     -- Try to register options immediately (may fail if options widget loads later)

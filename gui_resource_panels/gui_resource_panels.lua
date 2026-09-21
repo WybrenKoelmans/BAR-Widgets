@@ -17,7 +17,7 @@ end
 --------------------------------------------------------------------------------
 local spGetMapDrawMode = Spring.GetMapDrawMode
 local spGetSelectedUnits = Spring.GetSelectedUnits
-local spGetMyTeamID = Spring.GetMyTeamID
+local spGetMyTeamID = Spring.GetLocalTeamID
 local spGetTeamUnits = Spring.GetTeamUnits
 local spGetUnitDefID = Spring.GetUnitDefID
 local spGetUnitResources = Spring.GetUnitResources

@@ -27,7 +27,7 @@ local spGetUnitDefID = Spring.GetUnitDefID
 local spGetUnitsInCylinder = Spring.GetUnitsInCylinder
 local spGetUnitTeam = Spring.GetUnitTeam
 local spAreTeamsAllied = Spring.AreTeamsAllied
-local spGetMyTeamID = Spring.GetMyTeamID
+local spGetMyTeamID = Spring.GetLocalTeamID
 
 -- an pair of mine names to tech level to detonate like so name=techLevel
 local minesMap = {

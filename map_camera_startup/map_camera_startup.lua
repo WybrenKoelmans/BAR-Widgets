@@ -58,7 +58,7 @@ function widget:Update(dt)
         local camState = Spring.GetCameraState()
 
         -- Center the camera on the startbox
-        local myAllyTeamID = Spring.GetMyAllyTeamID()
+        local myAllyTeamID = Spring.GetLocalAllyTeamID()
         local xn, zn, xp, zp = Spring.GetAllyTeamStartBox(myAllyTeamID)
         local x = (xn + xp) / 2
         local z = (zn + zp) / 2

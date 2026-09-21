@@ -22,7 +22,7 @@ local pendingSet = nil    -- sockets whose request was fully sent (watched for r
 
 local REQUEST_TIMEOUT_SECONDS = 15
 
-local ourName = Spring.GetPlayerInfo(Spring.GetMyPlayerID(), false)
+local ourName = Spring.GetPlayerInfo(Spring.GetLocalPlayerID(), false)
 
 local libreTranslateHost = "libretranslate.zen-ben.com:80"
 local translateIncomingTo = "en"

@@ -17,7 +17,7 @@ end
 --------------------------------------------------------------------------------
 -- Local constants and references
 --------------------------------------------------------------------------------
-local spGetMyTeamID = Spring.GetMyTeamID
+local spGetMyTeamID = Spring.GetLocalTeamID
 local spGetUnitCmdDescs = Spring.GetUnitCmdDescs
 local spGetUnitBuildFacing = Spring.GetUnitBuildFacing
 local spGetUnitPosition = Spring.GetUnitPosition

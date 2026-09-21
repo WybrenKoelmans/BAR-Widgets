@@ -24,7 +24,7 @@ local spSelectUnitArray    = Spring.SelectUnitArray
 local spGetSelectedUnits   = Spring.GetSelectedUnits
 local spGetActiveCommand   = Spring.GetActiveCommand
 local spGetModKeyState     = Spring.GetModKeyState
-local spGetMyTeamID        = Spring.GetMyTeamID
+local spGetMyTeamID        = Spring.GetLocalTeamID
 
 --------------------------------------------------------------------------------
 -- Configuration

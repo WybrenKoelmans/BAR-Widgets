@@ -15,7 +15,7 @@ end
 local resurrectedUnits = {}
 local excludedAllyUnitTypes = {}
 local waitingUnits = {} -- waitingUnits[unitID] = frameResurrected
-local myTeam = Spring.GetMyTeamID()
+local myTeam = Spring.GetLocalTeamID()
 
 function widget:Initialize()
     -- Initialize excluded ally unit types

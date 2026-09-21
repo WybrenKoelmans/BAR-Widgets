@@ -33,7 +33,7 @@ local GL_KEEP = 0x1E00
 --------------------------------------------------------------------------------
 local mathFloor = math.floor
 local mathMax = math.max
-local spGetMyAllyTeamID = Spring.GetMyAllyTeamID
+local spGetMyAllyTeamID = Spring.GetLocalAllyTeamID
 local spGetTeamList = Spring.GetTeamList
 local spGetTeamUnits = Spring.GetTeamUnits
 local spGetUnitPosition = Spring.GetUnitPosition
