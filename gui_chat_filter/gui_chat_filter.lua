@@ -20,7 +20,7 @@ local connected = false
 local client = nil
 local set = nil
 local chatBuffer = {}
-local ourName = Spring.GetPlayerInfo(Spring.GetMyPlayerID(), false)
+local ourName = Spring.GetPlayerInfo(Spring.GetLocalPlayerID(), false)
 
 local spEcho = Spring.Echo
 

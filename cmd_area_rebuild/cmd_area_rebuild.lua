@@ -16,7 +16,7 @@ end
     - options
 --]]
 
-local spGetMyTeamID = Spring.GetMyTeamID
+local spGetMyTeamID = Spring.GetLocalTeamID
 local spGetUnitIsBeingBuilt = Spring.GetUnitIsBeingBuilt
 local spGetUnitPosition = Spring.GetUnitPosition
 local spGetUnitHeading = Spring.GetUnitHeading

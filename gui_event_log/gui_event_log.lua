@@ -23,7 +23,7 @@ local nukers = {}
 
 local spEcho = Spring.Echo
 local spGetGaiaTeamID = Spring.GetGaiaTeamID
-local spGetMyTeamID = Spring.GetMyTeamID
+local spGetMyTeamID = Spring.GetLocalTeamID
 local spIsUnitAllied = Spring.IsUnitAllied
 local spGetAllUnits = Spring.GetAllUnits
 local spGetUnitTeam = Spring.GetUnitTeam

@@ -170,7 +170,7 @@ end
 
 
 local function GetCommanderPosition()
-    local myTeamID = Spring.GetMyTeamID()
+    local myTeamID = Spring.GetLocalTeamID()
     local myUnits = Spring.GetTeamUnits(myTeamID)
     for i = 1, #myUnits do
         local unitID = myUnits[i]
@@ -239,7 +239,7 @@ function doChecks()
     end
 
     -- Check the buildings we currently have
-    local myTeamID = Spring.GetMyTeamID()
+    local myTeamID = Spring.GetLocalTeamID()
     local myUnits = Spring.GetTeamUnits(myTeamID)
     metalExtractors = 0
     metalExtractorsUnderConstruction = 0

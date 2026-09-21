@@ -20,7 +20,7 @@ local spGetUnitTeam = Spring.GetUnitTeam
 local spGetUnitCommandCount = Spring.GetUnitCommandCount
 local spGetUnitIsDead = Spring.GetUnitIsDead
 local spGetUnitIsBeingBuilt = Spring.GetUnitIsBeingBuilt
-local myTeamID = Spring.GetMyTeamID
+local myTeamID = Spring.GetLocalTeamID
 
 local mapSizeX = Game.mapSizeX
 local mapSizeZ = Game.mapSizeZ

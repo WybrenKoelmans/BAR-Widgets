@@ -31,10 +31,10 @@ local function unitDefName(uDefID)
 end
 
 -- category names must be the exact same I18N strings gridmenu_config.lua uses internally
-local BUILDCAT_ECONOMY = Spring.I18N("ui.buildMenu.category_econ")
-local BUILDCAT_COMBAT = Spring.I18N("ui.buildMenu.category_combat")
-local BUILDCAT_UTILITY = Spring.I18N("ui.buildMenu.category_utility")
-local BUILDCAT_PRODUCTION = Spring.I18N("ui.buildMenu.category_production")
+local BUILDCAT_ECONOMY = BAR.I18N("ui.buildMenu.category_econ")
+local BUILDCAT_COMBAT = BAR.I18N("ui.buildMenu.category_combat")
+local BUILDCAT_UTILITY = BAR.I18N("ui.buildMenu.category_utility")
+local BUILDCAT_PRODUCTION = BAR.I18N("ui.buildMenu.category_production")
 
 -- index order matches both gridmenu's category order and the Z/X/C/V key order
 ---@type string[]
@@ -88,7 +88,7 @@ end
 
 local function getActiveBuilder()
     if isPregame then
-        return Spring.GetTeamRulesParam(Spring.GetMyTeamID(), "startUnit")
+        return Spring.GetTeamRulesParam(Spring.GetLocalTeamID(), "startUnit")
     end
 
     -- follow whichever builder's grid the gridmenu is currently showing

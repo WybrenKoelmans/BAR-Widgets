@@ -20,7 +20,7 @@ local CMD_MOVE = CMD.MOVE
 local IsUnitAllied = Spring.IsUnitAllied
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetUnitCommands = Spring.GetUnitCommands
-local myTeamID = Spring.GetMyTeamID()
+local myTeamID = Spring.GetLocalTeamID()
 
 local gameStarted
 

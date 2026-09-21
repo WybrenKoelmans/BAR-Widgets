@@ -14,7 +14,7 @@ function widget:GetInfo()
 end
 
 -- Spring API
-local spGetMyTeamID = Spring.GetMyTeamID
+local spGetMyTeamID = Spring.GetLocalTeamID
 local spGetTeamResources = Spring.GetTeamResources
 local isSingle = true
 
@@ -62,7 +62,7 @@ function widget:Initialize()
     smoothed_metal_overflow_balance = 0
     smoothed_energy_overflow_balance = 0
 
-    local myAllyTeamID = Spring.GetMyAllyTeamID()
+    local myAllyTeamID = Spring.GetLocalAllyTeamID()
     local teamList = Spring.GetTeamList(myAllyTeamID) or {}
     isSingle = #teamList == 1
 end
@@ -189,14 +189,14 @@ function widget:DrawScreen()
         end
         local e_overflow_color = "\255\255\230\80" -- yellow
         local e_slider_x = getShareSliderX(energyArea, share_energy)
-        local e_overflow_y = e_y - e_barHeight * 0.10
+        local e_overflow_y = e_y - e_barHeight * 0.20
         font:Print(e_overflow_color .. short(e_overflow, 1), e_slider_x, e_overflow_y, 18, "co")
 
         -- Metal Overflow
         local m_overflow = smoothed_metal_overflow_balance
         local m_overflow_color = "\255\120\180\255" -- blue
         local m_slider_x = getShareSliderX(metalArea, share_metal)
-        local m_overflow_y = m_y - m_barHeight * 0.10
+        local m_overflow_y = m_y - m_barHeight * 0.20
         font:Print(m_overflow_color .. short(m_overflow, 1), m_slider_x, m_overflow_y, 18, "co")
     end
 

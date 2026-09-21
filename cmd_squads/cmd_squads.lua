@@ -64,7 +64,7 @@ local config = {
 -- Localized Spring / gl API
 -------------------------------------------------------------------------------
 
-local spGetMyTeamID = Spring.GetMyTeamID
+local spGetMyTeamID = Spring.GetLocalTeamID
 local spGetTeamColor = Spring.GetTeamColor
 local spGetUnitDefID = Spring.GetUnitDefID
 local spGetUnitPosition = Spring.GetUnitPosition
