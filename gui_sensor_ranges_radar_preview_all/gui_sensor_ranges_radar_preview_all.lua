@@ -3,7 +3,6 @@ local Spring = Spring
 local gl = gl
 local GL = GL
 local WG = WG
-local Game = Game
 local UnitDefs = UnitDefs
 local widgetHandler = widgetHandler
 
@@ -22,11 +21,11 @@ end
 --------------------------------------------------------------------------------
 -- Performance-tuned constants
 --------------------------------------------------------------------------------
-local SHADER_RESOLUTION = 32   -- grid cell size in elmos (2x coarser than original = 4x fewer vertices)
-local RAYMARCH_STEPS = 40       -- ray-march steps per vertex (vs 112 original = ~3x cheaper)
+local SHADER_RESOLUTION = 48   -- coarser grid reduces per-radar vertex work
+local RAYMARCH_STEPS = 28       -- bounded terrain samples per vertex
 local RADAR_Y_OFFSET = 50
-local REFRESH_INTERVAL = 90    -- frames between full radar list refresh
-local GL_KEEP = 0x1E00
+local REFRESH_FALLBACK_INTERVAL = 600 -- safety rescan every 20 seconds
+
 
 --------------------------------------------------------------------------------
 -- Engine API shortcuts
@@ -36,6 +35,7 @@ local mathMax = math.max
 local spGetMyAllyTeamID = Spring.GetLocalAllyTeamID
 local spGetTeamList = Spring.GetTeamList
 local spGetTeamUnits = Spring.GetTeamUnits
+local spGetTeamInfo = Spring.GetTeamInfo
 local spGetUnitPosition = Spring.GetUnitPosition
 local spGetUnitDefID = Spring.GetUnitDefID
 local spIsGUIHidden = Spring.IsGUIHidden
@@ -64,8 +64,8 @@ end
 -- Inline GLSL shaders
 --
 -- Performance notes vs original:
---   * Grid is 2x coarser (SHADER_RESOLUTION 32 vs 16) → 4x fewer vertices
---   * Ray-march uses 40 steps vs 112 → 2.8x fewer texture lookups per vertex
+--   * Grid is coarser than the original to reduce vertex count
+--   * Ray-march uses a bounded sample count per vertex
 --   * HeightAt samples mip level 1 → cheaper texture reads
 --   * Out-of-range vertices early-discard before ray-march loop
 --   * Combined: ~10x reduction in texture lookups per radar
@@ -138,7 +138,7 @@ out vec4 fragColor;
 
 void main() {
 	if (v_visible < 0.5) discard;
-	fragColor = vec4(0.0, 1.0, 0.0, 1.0);
+		fragColor = vec4(0.0, 1.0, 0.0, 0.10);
 }
 ]]
 
@@ -162,6 +162,7 @@ local shaderSourceCache = {
 local rangeToVAO = {} -- radar range -> VAO (lazily created)
 local alliedRadars = {} -- { unitID, range, emitHeight }[]
 local lastRefreshFrame = -999
+local radarListDirty = true
 
 --------------------------------------------------------------------------------
 -- Helpers
@@ -197,6 +198,11 @@ local function getOrCreateVAO(range)
 end
 
 --- Scan all allied teams for radar buildings.
+local function isAlliedTeam(teamID)
+	local _, _, _, _, _, allyTeamID = spGetTeamInfo(teamID)
+	return allyTeamID == spGetMyAllyTeamID()
+end
+
 local function refreshAlliedRadars()
 	alliedRadars = {}
 	local myAlly = spGetMyAllyTeamID()
@@ -215,6 +221,33 @@ local function refreshAlliedRadars()
 			end
 		end
 	end
+	radarListDirty = false
+end
+
+local function markRadarListDirty(unitDefID)
+	if not unitDefID or radarDefs[unitDefID] then
+		radarListDirty = true
+	end
+end
+
+function widget:UnitCreated(unitID, unitDefID, unitTeam)
+	if isAlliedTeam(unitTeam) then markRadarListDirty(unitDefID) end
+end
+
+function widget:UnitFinished(unitID, unitDefID, unitTeam)
+	if isAlliedTeam(unitTeam) then markRadarListDirty(unitDefID) end
+end
+
+function widget:UnitDestroyed(unitID, unitDefID, unitTeam)
+	markRadarListDirty(unitDefID)
+end
+
+function widget:UnitGiven(unitID, unitDefID, oldTeam, newTeam)
+	markRadarListDirty(unitDefID)
+end
+
+function widget:UnitTaken(unitID, unitDefID, oldTeam, newTeam)
+	markRadarListDirty(unitDefID)
 end
 
 --------------------------------------------------------------------------------
@@ -232,36 +265,38 @@ function widget:Initialize()
 		return
 	end
 	refreshAlliedRadars()
+	lastRefreshFrame = spGetGameFrame()
+end
+
+function widget:PlayerChanged()
+	radarListDirty = true
+	lastRefreshFrame = -999
 end
 
 function widget:Shutdown()
 end
 
 --------------------------------------------------------------------------------
--- Drawing: stencil-based union rendering
+-- Drawing: direct mesh rendering
 --
--- Pass 1: For each radar, draw its ray-marched coverage mesh into the stencil
---         buffer with color writes off. Visible fragments write stencil=1.
---         Overlapping radars naturally form a union (ALWAYS pass, write 1).
--- Pass 2: Draw two ground quads testing stencil:
---         stencil==1 → green (covered), stencil==0 → red (uncovered)
+-- The ray-marched radar meshes already contain the visible coverage result.
+-- Render those fragments directly instead of writing a stencil and then
+-- rasterizing a full-map ground quad to color the stencil.
 --------------------------------------------------------------------------------
 function widget:DrawWorld()
 	if not isRadarContext() then return end
 	if spIsGUIHidden() or (WG['topbar'] and WG['topbar'].showingQuit()) then return end
 
-	-- Periodic refresh of radar list
+	-- Radar membership changes are event-driven; keep only a slow fallback scan.
 	local frame = spGetGameFrame()
-	if frame - lastRefreshFrame > REFRESH_INTERVAL then
+	if radarListDirty or frame - lastRefreshFrame > REFRESH_FALLBACK_INTERVAL then
 		refreshAlliedRadars()
 		lastRefreshFrame = frame
 	end
 	if #alliedRadars == 0 then return end
 
-	local snap = SHADER_RESOLUTION * 2
-
 	------------------------------------------------------------------------
-	-- Pass 1: Stencil — mark radar-covered ground
+	-- Direct coverage pass: visible mesh fragments are already raymarched.
 	------------------------------------------------------------------------
 	gl.DepthTest(false)
 	gl.Culling(GL.BACK)
@@ -269,22 +304,17 @@ function widget:DrawWorld()
 	radarShader:Activate()
 	radarShader:SetUniform("resolution", RAYMARCH_STEPS)
 
-	gl.Clear(GL.STENCIL_BUFFER_BIT)
-	gl.StencilTest(true)
-	gl.StencilMask(1)
-	gl.StencilFunc(GL.ALWAYS, 1, 1)
-	gl.StencilOp(GL_KEEP, GL_KEEP, GL.REPLACE)
-	gl.ColorMask(false, false, false, false)
-	gl.Blending(false)
+	gl.Blending(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA)
+	gl.Color(1, 1, 1, 1)
 
 	for i = 1, #alliedRadars do
 		local r = alliedRadars[i]
 		local x, y, z = spGetUnitPosition(r.unitID)
 		if x then
 			radarShader:SetUniform("radarcenter_range",
-				mathFloor((x + 8) / snap) * snap,
-				(y or 0) + r.emitHeight,
-				mathFloor((z + 8) / snap) * snap,
+			x,
+			(y or 0) + r.emitHeight,
+			z,
 				r.range
 			)
 			getOrCreateVAO(r.range):DrawElements(GL.TRIANGLES)
@@ -295,28 +325,10 @@ function widget:DrawWorld()
 	gl.Texture(0, false)
 
 	------------------------------------------------------------------------
-	-- Pass 2: Color overlay via stencil test (two cheap ground quads)
-	------------------------------------------------------------------------
-	gl.ColorMask(true, true, true, true)
-	gl.Blending(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA)
-	gl.StencilMask(0)
-
-	-- Green where covered (stencil == 1)
-	gl.StencilFunc(GL.EQUAL, 1, 1)
-	gl.Color(0, 1, 0, 0.10)
-	gl.DrawGroundQuad(0, 0, Game.mapSizeX, Game.mapSizeZ)
-
-	-- Red where uncovered (stencil == 0)
-	gl.StencilFunc(GL.EQUAL, 0, 1)
-	gl.Color(1, 0, 0, 0.10)
-	gl.DrawGroundQuad(0, 0, Game.mapSizeX, Game.mapSizeZ)
-
-	------------------------------------------------------------------------
 	-- Cleanup
 	------------------------------------------------------------------------
-	gl.StencilTest(false)
-	gl.StencilMask(255)
 	gl.Color(1, 1, 1, 1)
+	gl.Blending(false)
 	gl.Culling(false)
 	gl.DepthTest(true)
 end
