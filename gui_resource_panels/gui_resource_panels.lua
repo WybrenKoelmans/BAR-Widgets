@@ -3,7 +3,7 @@ local widget = widget ---@type Widget
 function widget:GetInfo()
 	return {
 		name = "Resource Panels",
-		desc = "Shows the amount of metal/energy units are using during Resource Mode screenmode.",
+		desc = "Displays per-unit metal/energy income and drain labels, with options to always show labels, automatically enable Resource Mode when constructors are selected, and show or hide the right-side Resource Overview panel.",
 		author = "uBdead",
 		date = "2026-04-12",
 		license = "GNU GPL, v2 or later",
@@ -109,9 +109,13 @@ local lastOverviewUpdateFrame = -999
 local chobbyInterface = false
 
 -- Auto-resource-mode option state
-local optAutoResourceMode = true
-local autoSwitchedToResource = false -- true when we triggered the metal map
-local prevDrawModeBeforeAuto = "normal" -- mode to restore on deselect
+local optAutoResourceMode = true -- show unit resource labels while a constructor is selected
+local optAlwaysShowUnitLabels = true -- always show per-unit resource labels, regardless of selection/map mode
+local optAutoSwitchMetalMap = false -- optional automatic map-mode switching, disabled by default
+local optShowOverviewPanel = false -- optional right-side summary panel, hidden by default
+local autoSwitchedToResource = false -- true while constructor-triggered resource labels are active
+local autoSwitchedMapMode = false -- true only if this widget changed the map mode
+local prevDrawModeBeforeAuto = "normal" -- map mode to restore after deselection
 local optionsRegistered = false
 
 --------------------------------------------------------------------------------
@@ -126,25 +130,14 @@ local function registerOptions()
 		{ id = "resource_panels_label", name = "Resource Panels", type = "label" },
 		{ id = "resource_panels_spacer" },
 		{ id = "resource_panels_auto_resource_mode",
-			name = "Auto Resource Mode on Constructor Selected",
+			name = "Show Resource Labels on Constructor Selected",
 			type = "bool",
 			value = optAutoResourceMode,
-			description = "Automatically switch to Resource Mode when a construction unit is selected.",
+			description = "Show per-unit resource labels when a construction unit is selected. Independent of the Metal Map option below.",
 			onchange = function(_, value)
 				optAutoResourceMode = value
-				-- If disabled while we had auto-switched, restore the prior mode
-				if not value and autoSwitchedToResource then
+				if not value then
 					autoSwitchedToResource = false
-				local currentMode = spGetMapDrawMode() or "normal"
-				if prevDrawModeBeforeAuto ~= currentMode then
-					if currentMode == 'metal' then
-						Spring.SendCommands("ShowStandard")
-					end
-					if prevDrawModeBeforeAuto == 'los' then
-						Spring.SendCommands("togglelos")
-						end
-					end
-					prevDrawModeBeforeAuto = "normal"
 				end
 				-- If enabled, check current selection immediately
 				if value then
@@ -153,6 +146,37 @@ local function registerOptions()
 						widget:SelectionChanged(sel)
 					end
 				end
+			end,
+		},
+		{ id = "resource_panels_always_show_unit_labels",
+			name = "Always Show Unit Resource Labels",
+			type = "bool",
+			value = optAlwaysShowUnitLabels,
+			description = "Always show per-unit metal/energy labels for your units with resource flow, regardless of selection or map mode.",
+			onchange = function(_, value)
+				optAlwaysShowUnitLabels = value
+			end,
+		},
+		{ id = "resource_panels_auto_switch_metal_map",
+			name = "Automatically Switch to Metal Map",
+			type = "bool",
+			value = optAutoSwitchMetalMap,
+			description = "Automatically switch to Metal Map while a constructor is selected, and restore the previous map mode after deselection.",
+			onchange = function(_, value)
+				optAutoSwitchMetalMap = value
+				local sel = spGetSelectedUnits()
+				if sel then
+					widget:SelectionChanged(sel)
+				end
+			end,
+		},
+		{ id = "resource_panels_show_overview",
+			name = "Show Right-Side Resource Overview",
+			type = "bool",
+			value = optShowOverviewPanel,
+			description = "Show the aggregated Resource Overview panel on the right side of the screen.",
+			onchange = function(_, value)
+				optShowOverviewPanel = value
 			end,
 		},
 	})
@@ -167,6 +191,9 @@ local function removeOptions()
 			"resource_panels_label",
 			"resource_panels_spacer",
 			"resource_panels_auto_resource_mode",
+			"resource_panels_always_show_unit_labels",
+			"resource_panels_auto_switch_metal_map",
+			"resource_panels_show_overview",
 		})
 	end
 	optionsRegistered = false
@@ -684,12 +711,24 @@ end
 function widget:GetConfigData()
 	return {
 		autoResourceMode = optAutoResourceMode,
+		alwaysShowUnitLabels = optAlwaysShowUnitLabels,
+		showOverviewPanel = optShowOverviewPanel,
+		autoSwitchMetalMap = optAutoSwitchMetalMap,
 	}
 end
 
 function widget:SetConfigData(data)
 	if data and data.autoResourceMode ~= nil then
 		optAutoResourceMode = data.autoResourceMode == true
+	end
+	if data and data.alwaysShowUnitLabels ~= nil then
+		optAlwaysShowUnitLabels = data.alwaysShowUnitLabels == true
+	end
+	if data and data.showOverviewPanel ~= nil then
+		optShowOverviewPanel = data.showOverviewPanel == true
+	end
+	if data and data.autoSwitchMetalMap ~= nil then
+		optAutoSwitchMetalMap = data.autoSwitchMetalMap == true
 	end
 end
 
@@ -730,8 +769,6 @@ function widget:Update(dt)
 end
 
 function widget:SelectionChanged(selectedUnits)
-	if not optAutoResourceMode then return end
-
 	local hasConstructor = false
 	for i = 1, #selectedUnits do
 		local defID = spGetUnitDefID(selectedUnits[i])
@@ -744,36 +781,36 @@ function widget:SelectionChanged(selectedUnits)
 		end
 	end
 
-	if hasConstructor and not autoSwitchedToResource then
-		prevDrawModeBeforeAuto = spGetMapDrawMode() or "normal"
-		if prevDrawModeBeforeAuto ~= 'metal' then
-			-- Exit LOS mode first if active, then show metal map
-			if prevDrawModeBeforeAuto == 'los' then
+	-- Unit labels are independent of the map draw mode.
+	autoSwitchedToResource = optAutoResourceMode and hasConstructor
+
+	-- Optional legacy-style behavior: switch to Metal Map only when requested.
+	if optAutoSwitchMetalMap and hasConstructor and not autoSwitchedMapMode then
+		local currentMode = spGetMapDrawMode() or "normal"
+		if currentMode ~= "metal" then
+			prevDrawModeBeforeAuto = currentMode
+			if currentMode == "los" then
 				Spring.SendCommands("togglelos")
 			end
 			Spring.SendCommands("ShowMetalMap")
+			autoSwitchedMapMode = true
 		end
-		autoSwitchedToResource = true
-	elseif not hasConstructor and autoSwitchedToResource then
-		autoSwitchedToResource = false
+	elseif (not hasConstructor or not optAutoSwitchMetalMap) and autoSwitchedMapMode then
 		local currentMode = spGetMapDrawMode() or "normal"
-		if prevDrawModeBeforeAuto ~= currentMode then
-			-- First exit metal if needed
-			if currentMode == 'metal' then
-				Spring.SendCommands("ShowStandard")
-			end
-			-- Re-enter LOS if that was the prior state
-			if prevDrawModeBeforeAuto == 'los' then
-				Spring.SendCommands("togglelos")
-			end
+		if currentMode == "metal" then
+			Spring.SendCommands("ShowStandard")
 		end
+		if prevDrawModeBeforeAuto == "los" then
+			Spring.SendCommands("togglelos")
+		end
+		autoSwitchedMapMode = false
 		prevDrawModeBeforeAuto = "normal"
 	end
 end
 
 function widget:DrawWorld()
 	if chobbyInterface then return end
-	if not isResourceMode then return end
+	if not optAlwaysShowUnitLabels and not isResourceMode and not autoSwitchedToResource then return end
 
 	local gameFrame = spGetGameFrame()
 	if gameFrame - lastUpdateFrame >= UPDATE_RATE then
@@ -784,12 +821,14 @@ end
 
 function widget:DrawScreen()
 	if chobbyInterface then return end
-	if not isResourceMode then return end
+	if not optAlwaysShowUnitLabels and not isResourceMode and not autoSwitchedToResource then return end
 	if not font2 then return end
 	if WG['topbar'] and WG['topbar'].showingQuit() then return end
 
 	drawUnitPanels()
-	drawOverviewPanel()
+	if optShowOverviewPanel then
+		drawOverviewPanel()
+	end
 end
 
 function widget:GameOver()
